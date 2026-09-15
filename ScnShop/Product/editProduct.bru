@@ -1,0 +1,23 @@
+meta {
+  name: editProduct
+  type: http
+  seq: 2
+}
+
+put {
+  url: http://localhost:3000/editproducts
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "id":"7b4a0366-ec93-4a9f-b72f-8eb1e74b1e02",
+    "name":"New Tshirt"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

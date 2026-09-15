@@ -1,0 +1,19 @@
+meta {
+  name: RemoveRoleFromUser
+  type: http
+  seq: 5
+}
+
+delete {
+  url: http://localhost:3000/user_roles/USER_ID/ROLE_ID
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer 
+}
+
+settings {
+  encodeUrl: false
+}

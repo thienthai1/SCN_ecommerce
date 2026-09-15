@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sachanon Textile - Warm, Elegant Design System */
+
+@layer base {
+  :root {
+    /* Warm cream/beige palette for luxury textiles */
+    --background: 40 30% 98%;
+    --foreground: 25 25% 15%;
+
+    --card: 40 25% 97%;
+    --card-foreground: 25 25% 15%;
+
+    --popover: 40 30% 98%;
+    --popover-foreground: 25 25% 15%;
+
+    /* Warm golden-green (from logo) as primary */
+    --primary: 85 45% 35%;
+    --primary-foreground: 40 30% 98%;
+
+    /* Soft beige secondary */
+    --secondary: 35 30% 92%;
+    --secondary-foreground: 25 25% 20%;
+
+    --muted: 35 20% 93%;
+    --muted-foreground: 25 15% 45%;
+
+    /* Warm peach accent (from logo wheat) */
+    --accent: 30 70% 75%;
+    --accent-foreground: 25 25% 15%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 40 30% 98%;
+
+    --border: 35 20% 88%;
+    --input: 35 20% 88%;
+    --ring: 85 45% 35%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --success: 120 40% 45%;
+    --success-foreground: 40 30% 98%;
+    
+    --warning: 40 90% 55%;
+    --warning-foreground: 25 25% 15%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(85 45% 35% / 0.9), hsl(30 70% 65% / 0.8));
+    --gradient-card: linear-gradient(180deg, hsl(40 30% 98%), hsl(35 25% 94%));
+    
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(25 25% 15% / 0.08);
+    --shadow-card: 0 2px 12px -2px hsl(25 25% 15% / 0.1);
+    --shadow-elevated: 0 8px 30px -8px hsl(25 25% 15% / 0.15);
+
+    --sidebar-background: 40 25% 97%;
+    --sidebar-foreground: 25 25% 20%;
+    --sidebar-primary: 85 45% 35%;
+    --sidebar-primary-foreground: 40 30% 98%;
+    --sidebar-accent: 35 30% 92%;
+    --sidebar-accent-foreground: 25 25% 20%;
+    --sidebar-border: 35 20% 88%;
+    --sidebar-ring: 85 45% 35%;
+  }
+
+  .dark {
+    --background: 25 20% 10%;
+    --foreground: 40 20% 95%;
+
+    --card: 25 18% 14%;
+    --card-foreground: 40 20% 95%;
+
+    --popover: 25 18% 12%;
+    --popover-foreground: 40 20% 95%;
+
+    --primary: 85 50% 50%;
+    --primary-foreground: 25 20% 10%;
+
+    --secondary: 25 15% 20%;
+    --secondary-foreground: 40 20% 90%;
+
+    --muted: 25 15% 18%;
+    --muted-foreground: 35 15% 60%;
+
+    --accent: 30 60% 55%;
+    --accent-foreground: 25 20% 10%;
+
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 40 20% 95%;
+
+    --border: 25 15% 22%;
+    --input: 25 15% 22%;
+    --ring: 85 50% 50%;
+
+    --sidebar-background: 25 18% 12%;
+    --sidebar-foreground: 40 20% 90%;
+    --sidebar-primary: 85 50% 50%;
+    --sidebar-primary-foreground: 25 20% 10%;
+    --sidebar-accent: 25 15% 18%;
+    --sidebar-accent-foreground: 40 20% 90%;
+    --sidebar-border: 25 15% 22%;
+    --sidebar-ring: 85 50% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+  
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  /* Mobile safe areas */
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,0 +1,23 @@
+meta {
+  name: UploadProductImage
+  type: http
+  seq: 7
+}
+
+post {
+  url: http://localhost:3000/uploadProductImagedata:image/png;base64,,
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  @-
+}
+
+settings {
+  encodeUrl: false
+}

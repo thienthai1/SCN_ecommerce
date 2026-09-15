@@ -1,0 +1,27 @@
+meta {
+  name: AddRolePermission
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:3000/role_permissions
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer 
+}
+
+body:json {
+  {
+    "role_id": "ROLE_ID",
+    "permission_id": "PERM_ID"
+  }
+}
+
+settings {
+  encodeUrl: false
+}

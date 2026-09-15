@@ -1,0 +1,26 @@
+meta {
+  name: TestRichMessage
+  type: http
+  seq: 17
+}
+
+post {
+  url: http://localhost:5000/test-richmessage
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "activity_id": "WbU2PZKIP2JZI0tWhbNP",
+    "line_user_id": "Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  }
+}
+
+settings {
+  encodeUrl: false
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Testwehook
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:3000/api/payments/omise/create
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "amount": 10000,
+    "orderId": "order-123"
+  }
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}

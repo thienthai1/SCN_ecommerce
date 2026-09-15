@@ -1,0 +1,15 @@
+# Local settings and credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+service-account-key*.json
+
+# Dependencies and generated files
+node_modules/
+dist/
+.quasar/
+.DS_Store
+
+# Local mockup archive
+/mockup.zip

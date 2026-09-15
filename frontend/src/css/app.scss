@@ -1,0 +1,58 @@
+// app global css in SCSS form
+@import 'tailwindcss';
+
+:root {
+  // Theme colors - Red Theme
+  --theme-gradient: #FF1925;
+  --theme-primary: #FF1925;
+  --theme-primary-light: #ff4d56;
+  --theme-primary-dark: #e11d24;
+  --theme-accent: #FFBA08;
+  --theme-accent-light: #fcd34d;
+  --theme-accent-dark: #d97706;
+  --theme-white-color: rgb(251, 251, 249);
+  --theme-search-bg: #f6f5f5;
+  
+  // Primary colors
+  --primary-color: #FF1925;
+  --secondary-color: #374151;
+  
+  // Text colors
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+  --text-light: #9ca3af;
+  --light-text-color: #9ca3af;
+  
+  // Background colors
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  
+  // Border colors
+  --border-color: #e5e7eb;
+  --border-light: #f3f4f6;
+  
+  // Accent colors
+  --highlight-color: #FFBA08;
+  --highlight-light: #fcd34d;
+  --highlight-light-secondary: #fef3c7;
+  --accent-amber: #92400e;
+  --accent-red: #FF1925;
+  --accent-green: #22c55e;
+  --accent-blue: #3b82f6;
+  --accent-red-light: rgba(255, 25, 37, 0.08);
+  
+  // Dark mode specific (overridden in dark mode)
+  --dark-primary-color: #6b7280;
+  --dark-secondary-color: #111827;
+  --dark-text-color: #ffffff;
+  --dark-bg-primary: #1f2937;
+  --dark-bg-secondary: #111827;
+  --dark-border-color: #374151;
+  --dark-text-secondary: #f6f6f6;
+}
+
+main {
+  background-color: var(--theme-white-color);
+}

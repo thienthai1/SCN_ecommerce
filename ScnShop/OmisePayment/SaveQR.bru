@@ -1,0 +1,27 @@
+meta {
+  name: SaveQR
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://localhost:3000/api/payments/omise/qr
+  body: none
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "amount": 10000,
+    "orderId": "order-123"
+  }
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}

@@ -1,0 +1,34 @@
+meta {
+  name: CreateJobs
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3000/clould-scheduler/create-job
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+      "jobId":"daily-rootood",
+      "runAt":"2026-01-30T02:18:00+07:00",
+      "title":"Daily summary rootood",
+      "description":"Send daily rootood order summary to users"
+  }
+}
+
+body:form-urlencoded {
+  id_token: 
+  client_id: 2008961587-8IiiFID9
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}

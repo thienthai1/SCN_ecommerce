@@ -1,0 +1,27 @@
+meta {
+  name: AddRoleToUser
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:3000/user_roles
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer 
+}
+
+body:json {
+  {
+    "user_id": "USER_ID",
+    "role_id": "ROLE_ID"
+  }
+}
+
+settings {
+  encodeUrl: false
+}

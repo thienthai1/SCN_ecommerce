@@ -1,0 +1,30 @@
+meta {
+  name: addProduct
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3000/addproducts
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name":"น้ำหอม",
+    "description":"น้ำหอม Channel",
+    "price":1500,
+    "stock":7,
+    "category_name": "น้ำหอม",
+    "sku": "PARFUME-001",
+    "is_active":true,
+    "imageUrl":"https://a.cdnsbn.com/images/products/l/17089180205-1.jpg",
+    "isVariant":false
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

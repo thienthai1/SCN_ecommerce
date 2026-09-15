@@ -1,0 +1,19 @@
+meta {
+  name: GetShippingConfig
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost/:YOUR_PORT/shippingConfig
+  body: none
+  auth: inherit
+}
+
+params:path {
+  YOUR_PORT: 
+}
+
+settings {
+  encodeUrl: false
+}

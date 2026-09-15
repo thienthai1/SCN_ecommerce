@@ -1,0 +1,27 @@
+meta {
+  name: AddPermission
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3000/permissions
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer 
+}
+
+body:json {
+  {
+    "name": "create_user",
+    "description": "Create users"
+  }
+}
+
+settings {
+  encodeUrl: false
+}

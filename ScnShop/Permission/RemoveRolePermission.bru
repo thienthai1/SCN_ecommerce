@@ -1,0 +1,19 @@
+meta {
+  name: RemoveRolePermission
+  type: http
+  seq: 6
+}
+
+delete {
+  url: http://localhost:3000/role_permissions/ROLE_ID/PERM_ID
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer 
+}
+
+settings {
+  encodeUrl: false
+}

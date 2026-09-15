@@ -1,0 +1,27 @@
+meta {
+  name: addpoint
+  type: http
+  seq: 13
+}
+
+post {
+  url: http://localhost:3000/user/line/add-points
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  x-service-secret: {{serviceSecret}}
+}
+
+body:json {
+  {
+    "line_user_id": "U12345",
+    "points": 50
+  }
+}
+
+settings {
+  encodeUrl: false
+}

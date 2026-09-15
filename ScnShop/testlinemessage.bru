@@ -1,0 +1,30 @@
+meta {
+  name: testlinemessage
+  type: http
+  seq: 14
+}
+
+post {
+  url: http://localhost:3000/line-message/broadcast
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "messages": [
+      {
+        "type": "text",
+        "text": "Hello everyone!"
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: false
+}

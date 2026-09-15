@@ -1,0 +1,30 @@
+meta {
+  name: CalculateShipping
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost/:YOUR_PORT/calculateShipping
+  body: json
+  auth: inherit
+}
+
+params:path {
+  YOUR_PORT: 
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "weight": 1.2,
+    "type": "standard"
+  }
+}
+
+settings {
+  encodeUrl: false
+}

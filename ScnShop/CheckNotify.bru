@@ -1,0 +1,20 @@
+meta {
+  name: CheckNotify
+  type: http
+  seq: 16
+}
+
+get {
+  url: http://localhost:3000/check-notify
+  body: none
+  auth: inherit
+}
+
+headers {
+  secret-notify-header: jjkeTyunkspw678
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

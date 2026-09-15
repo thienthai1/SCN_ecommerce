@@ -1,0 +1,30 @@
+meta {
+  name: test-card
+  type: http
+  seq: 19
+}
+
+post {
+  url: http://localhost/:PORT/test-activity-cards
+  body: json
+  auth: inherit
+}
+
+params:path {
+  PORT: 
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "line_user_id": "<USER_ID>",
+    "limit": 1
+  }
+}
+
+settings {
+  encodeUrl: false
+}

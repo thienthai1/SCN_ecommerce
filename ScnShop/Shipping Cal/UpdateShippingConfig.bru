@@ -1,0 +1,35 @@
+meta {
+  name: UpdateShippingConfig
+  type: http
+  seq: 2
+}
+
+put {
+  url: http://localhost:3000/shippingConfig
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "standard": {
+      "pricePerKg": 1,
+      "minDays": 3,
+      "maxDays": 4
+    },
+    "premium": {
+      "pricePerKg": 2,
+      "minDays": 1,
+      "maxDays": 2
+    }
+  }
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}

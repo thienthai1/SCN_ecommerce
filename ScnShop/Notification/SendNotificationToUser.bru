@@ -1,0 +1,30 @@
+meta {
+  name: SendNotificationToUser
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3000/sendNotificationToUser
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer <ADMIN_JWT>
+}
+
+body:json {
+  {
+    "user_id": "fQJALXS7jsNi5m9BhMa2",
+    "title": "Test notification",
+    "body": "This is a test push",
+    "openUrl": "/#/"
+  }
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Add Order Items
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3000/addorderitems
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "order_id":"3562ca6d-493e-44d9-b578-da34ebafbcff",
+    "product_id":"6be806cb-c2ea-41ea-9dff-2efdc4e9a17d",
+    "price":200,
+    "quantity":2
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

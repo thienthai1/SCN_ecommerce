@@ -1,0 +1,49 @@
+meta {
+  name: AddVariant
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:3000/addvariant
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "product_id": "3b8d3c47-cd85-4e15-9277-865e70018d9c",
+    "variant": "สี",
+    "options": [
+      {
+        "name": "น้ำเงิน",
+        "description": "",
+        "sku": "DUVET-280-BLUE",
+        "stock": 100,
+        "price": 650,
+        "weight": 0.8,
+        "imageUrl": "https://sojao.co.th/cdn/shop/files/sojao-organic-cotton-bundle-set-classic-sateen-navy-blue-wide.jpg?v=1726102323&width=2400",
+        "isActive": true
+      },
+      {
+        "name": "ขาว",
+        "description": "",
+        "sku": "DUVET-280-WHITE",
+        "stock": 150,
+        "price": 640,
+        "weight": 0.8,
+        "imageUrl": "https://m.media-amazon.com/images/I/81QF0RHosBL.jpg",
+        "isActive": true
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}

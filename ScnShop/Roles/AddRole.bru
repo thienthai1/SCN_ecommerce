@@ -1,0 +1,32 @@
+meta {
+  name: AddRole
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3000/user/roles
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "customer",
+    "description": "Customer role"
+  }
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}

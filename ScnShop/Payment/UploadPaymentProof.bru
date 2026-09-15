@@ -1,0 +1,27 @@
+meta {
+  name: UploadPaymentProof
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3000/uploadPaymentImage
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "order_id": "YOUR_ORDER_ID_HERE",
+    "imageBase64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "fileName": "payment_proof.png"
+  }
+}
+
+settings {
+  encodeUrl: false
+}

@@ -1,0 +1,25 @@
+meta {
+  name: TestCardMessage
+  type: http
+  seq: 18
+}
+
+post {
+  url: http://localhost:5000/test-activity-cards
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "line_user_id": "Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  }
+}
+
+settings {
+  encodeUrl: false
+}

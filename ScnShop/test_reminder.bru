@@ -1,0 +1,26 @@
+meta {
+  name: test_reminder
+  type: http
+  seq: 15
+}
+
+post {
+  url: http://localhost:3000/test-reminder
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "reminder_id": "43bwVl2sJPod1KpiiANF"
+  }
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}

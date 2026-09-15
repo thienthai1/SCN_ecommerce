@@ -1,0 +1,29 @@
+meta {
+  name: Register
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:3000/user/register
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "jdoe",
+    "password": "s3cretPass",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+84123456789"
+  }
+}
+
+settings {
+  encodeUrl: false
+}

@@ -1,0 +1,27 @@
+meta {
+  name: addOrders
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3000/addorders
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "order_token":"ORD123456",
+    "customer_name":"Jane Smith",
+    "customer_phone":"1234567890",
+    "status":"processing",
+    "total_price":129.50,
+    "shipped_address":"123 Main St, Anytown, Country"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

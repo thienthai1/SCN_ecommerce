@@ -1,0 +1,27 @@
+meta {
+  name: Add Slipped
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3000/addslippedImage
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "order_id": "3562ca6d-493e-44d9-b578-da34ebafbcff",
+    "imageUrl": "https://thunder.in.th/wp-content/uploads/2024/06/%E0%B8%AA%E0%B8%A5%E0%B8%B4%E0%B8%9B%E0%B9%82%E0%B8%AD%E0%B8%99%E0%B9%80%E0%B8%87%E0%B8%B4%E0%B8%99.webp"
+  }
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}
