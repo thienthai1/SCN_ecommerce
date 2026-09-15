@@ -11,7 +11,7 @@
           />
         </div>
         <div>
-          <span class="text-2xl font-bold text-gray-800">สมัครสมาชิก</span>
+          <span class="text-2xl font-bold text-gray-800">Create account</span>
         </div>
       </div>
 
@@ -21,22 +21,22 @@
           <!-- First & Last Name -->
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-2">
-              <label class="block text-sm font-medium text-gray-700">ชื่อ</label>
+              <label class="block text-sm font-medium text-gray-700">First name</label>
               <input
                 v-model="form.firstName"
                 type="text"
-                placeholder="ชื่อ"
+                placeholder="First name"
                 required
                 :disabled="loading"
                 class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
               />
             </div>
             <div class="space-y-2">
-              <label class="block text-sm font-medium text-gray-700">นามสกุล</label>
+              <label class="block text-sm font-medium text-gray-700">Last name</label>
               <input
                 v-model="form.lastName"
                 type="text"
-                placeholder="นามสกุล"
+                placeholder="Last name"
                 required
                 :disabled="loading"
                 class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
@@ -46,11 +46,11 @@
 
           <!-- Phone -->
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
+            <label class="block text-sm font-medium text-gray-700">Phone number</label>
             <input
               v-model="form.phone"
               type="tel"
-              placeholder="เบอร์โทรศัพท์"
+              placeholder="Phone number"
               required
               :disabled="loading"
               class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
@@ -139,7 +139,7 @@
             class="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <q-spinner v-if="loading" color="white" size="20px" />
-            <span>{{ loading ? 'กำลังสร้างบัญชี...' : 'สมัครสมาชิก' }}</span>
+            <span>{{ loading ? 'Creating account...' : 'Create account' }}</span>
           </button>
         </form>
 

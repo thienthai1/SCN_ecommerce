@@ -13,3 +13,10 @@ dist/
 
 # Local mockup archive
 /mockup.zip
+
+# Local app manager state and logs
+/.run/
+
+# Persistent local application data
+/backend/data/
+/backend/uploads/

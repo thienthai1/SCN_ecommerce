@@ -4,29 +4,30 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "start:dev": "nodemon index.js",
+    "start:dev": "node --watch index.js",
     "deploy": "heroku builds:create -a marketplace-plugin",
     "ok": "echo 'Backend is running!'",
-    "web-push": "web-push"
+    "web-push": "web-push",
+    "test": "node --test test/*.test.js",
+    "create-admin": "node scripts/create-admin.js"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@google-cloud/scheduler": "^5.3.1",
     "bcryptjs": "^2.4.3",
     "body-parser": "^2.2.2",
-    "bullmq": "^5.34.0",
     "busboy": "^1.6.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",
     "express": "^5.2.1",
-    "firebase": "^12.7.0",
-    "firebase-admin": "^13.6.0",
-    "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
     "omise": "^1.1.0",
     "uuid-v4": "^0.1.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "cron-parser": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }

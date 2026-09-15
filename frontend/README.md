@@ -1,43 +1,19 @@
-# Quasar App (template_latest)
+# Frontend / Backoffice
 
-A Quasar Project
-
-## Install the dependencies
+Vue + Quasar PWA. ใช้ API และไฟล์รูปจาก backend บนเซิร์ฟเวอร์นี้
 
 ```bash
-yarn
-# or
-npm install
+npm ci
+npm run dev
+npm run build
 ```
 
-### Start the app in development mode (hot-code reloading, error reporting, etc.)
+เข้า backoffice ที่ `/admin/login` และสร้างแอดมินด้วยคำสั่งใน
+[คู่มือ backend](../backend/README.md)
 
-```bash
-quasar dev
-```
+ค่าเริ่มต้นเรียก `/api` บน origin เดียวกับ frontend และ proxy ไป
+`http://127.0.0.1:3000` ระหว่าง development รวมถึง proxy รูปที่ `/uploads`
+ดู `.env.example` หากต้องเปลี่ยน port/backend URL
 
-### Lint the files
-
-```bash
-yarn lint
-# or
-npm run lint
-```
-
-### Format the files
-
-```bash
-yarn format
-# or
-npm run format
-```
-
-### Build the app for production
-
-```bash
-quasar build
-```
-
-### Customize the configuration
-
-See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-js).
+Build อยู่ที่ `dist/pwa` สำหรับ self-hosting และต้องตั้ง reverse proxy สำหรับ API/uploads
+ตามคู่มือ backend

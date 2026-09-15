@@ -1,0 +1,17 @@
+scn-emarket.kotrdev.com {
+	encode zstd gzip
+
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:3000
+	}
+
+	handle /uploads/* {
+		reverse_proxy 127.0.0.1:3000
+	}
+
+	handle {
+		root * /var/www/scn-emarket
+		try_files {path} /index.html
+		file_server
+	}
+}

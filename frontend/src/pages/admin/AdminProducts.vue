@@ -664,7 +664,7 @@ const filteredProducts = computed(() => {
 // Methods
 const formatCurrency = (value) => {
   if (value === undefined || value === null) return '฿0';
-  return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(value));
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'THB' }).format(Number(value));
 };
 
 const getProductStock = (product) => {

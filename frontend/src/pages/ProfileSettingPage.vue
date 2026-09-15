@@ -6,7 +6,7 @@
         <button @click="$router.back()" class="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
           <q-icon name="arrow_back" size="20px" class="text-gray-700" />
         </button>
-        <span class="text-lg font-semibold text-gray-800">ตั้งค่าผู้ใช้งาน</span>
+        <span class="text-lg font-semibold text-gray-800">Profile</span>
       </div>
     </header>
 
@@ -37,15 +37,15 @@
         <!-- View Mode -->
         <div v-if="!editingProfile" class="space-y-3">
           <div class="flex items-center justify-between py-2 border-b border-gray-100">
-            <span class="text-sm text-gray-500">ชื่อเต็ม</span>
+            <span class="text-sm text-gray-500">Full name</span>
             <span class="text-sm font-medium text-gray-800">{{ userProfile?.name || '-' }}</span>
           </div>
           <div class="flex items-center justify-between py-2 border-b border-gray-100">
-            <span class="text-sm text-gray-500">อีเมล</span>
+            <span class="text-sm text-gray-500">Email</span>
             <span class="text-sm font-medium text-gray-800">{{ userProfile?.email || '-' }}</span>
           </div>
           <div class="flex items-center justify-between py-2">
-            <span class="text-sm text-gray-500">หมายเลขโทรศัพท์</span>
+            <span class="text-sm text-gray-500">Phone number</span>
             <span class="text-sm font-medium text-gray-800">{{ userProfile?.phone || '-' }}</span>
           </div>
         </div>
@@ -53,7 +53,7 @@
         <!-- Edit Mode -->
         <div v-else class="space-y-4">
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">ชื่อเต็ม</label>
+            <label class="block text-sm font-medium text-gray-700">Full name</label>
             <input
               v-model="editForm.name"
               type="text"
@@ -62,7 +62,7 @@
             />
           </div>
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">อีเมล</label>
+            <label class="block text-sm font-medium text-gray-700">Email</label>
             <input
               v-model="editForm.email"
               type="email"
@@ -71,7 +71,7 @@
             />
           </div>
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">หมายเลขโทรศัพท์</label>
+            <label class="block text-sm font-medium text-gray-700">Phone number</label>
             <input
               v-model="editForm.phone"
               type="tel"
@@ -196,9 +196,9 @@
     <q-dialog v-model="showAddressDialog" persistent>
       <q-card class="w-full max-w-md rounded-2xl">
         <q-card-section class="pb-2">
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-800">{{ editingAddress ? 'Edit Address' : 'Add New Address' }}</h3>
-            <button @click="closeAddressDialog" class="p-1 hover:bg-gray-100 rounded-full">
+          <div class="flex flex-nowrap items-center justify-between gap-3">
+            <h3 class="min-w-0 text-lg font-semibold text-gray-800">{{ editingAddress ? 'Edit Address' : 'Add New Address' }}</h3>
+            <button type="button" aria-label="Close address panel" @click="closeAddressDialog" class="shrink-0 w-11 h-11 flex items-center justify-center hover:bg-gray-100 rounded-full">
               <q-icon name="close" size="20px" class="text-gray-500" />
             </button>
           </div>
@@ -263,6 +263,7 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+    <BottomNavigation />
   </div>
 </template>
 
@@ -271,7 +272,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { api } from 'src/boot/axios'
-import liff from '@line/liff'
+import BottomNavigation from '../components/BottomNavigation.vue'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -530,13 +531,6 @@ async function deleteAddress(addressId) {
   })
 }
 
-const checkLineLougout = () => {
-    if (liff.isLoggedIn()) {
-        console.log('User is logged in with LIFF, logging out...')
-    liff.logout()
-    }
-}
-
 // Logout
 function handleLogout() {
   $q.dialog({
@@ -544,23 +538,23 @@ function handleLogout() {
     message: 'Are you sure you want to logout?',
     cancel: true,
     persistent: true
-  }).onOk(() => {
-    localStorage.removeItem('user_token')
-    localStorage.removeItem('token')
-    localStorage.removeItem('user_profile')
-    checkLineLougout()
-    router.push('/')
+  }).onOk(async () => {
+    try {
+      await api.post('/user/logout')
+    } catch (error) {
+      console.warn('Server logout failed; clearing the local session.', error)
+    } finally {
+      localStorage.removeItem('user_token')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user_profile')
+      sessionStorage.removeItem('redirectAfterLogin')
+      await router.replace('/signin')
+    }
   })
 }
 
 // Initialize
 onMounted(() => {
-  const token = localStorage.getItem('user_token')
-  if (!token) {
-    router.push('/signin')
-    return
-  }
-  
   fetchProfile()
   fetchAddresses()
 })

@@ -10,8 +10,8 @@ config()
 export default defineConfig((ctx) => {
   // Use BASE_URL for dev, BASE_URL_PROD for production/deploy
   const API_URL = ctx.dev
-    ? process.env.BASE_URL || 'http://localhost:3000'
-    : process.env.BASE_URL_PROD || 'https://scn-shop.onrender.com'
+    ? process.env.BASE_URL || '/api'
+    : process.env.BASE_URL_PROD || '/api'
 
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
@@ -35,7 +35,6 @@ export default defineConfig((ctx) => {
       // 'line-awesome',
       // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
 
-      'roboto-font', // optional, you are not bound to it
       'material-icons', // optional, you are not bound to it
     ],
 
@@ -74,7 +73,14 @@ export default defineConfig((ctx) => {
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
     devServer: {
       // https: true,
-      open: true, // opens browser window automatically
+      open: false,
+      proxy: {
+        '/api': {
+          target: process.env.DEV_API_TARGET || 'http://127.0.0.1:3000',
+          rewrite: (url) => url.replace(/^\/api(?=\/|$)/, ''),
+        },
+        '/uploads': { target: process.env.DEV_API_TARGET || 'http://127.0.0.1:3000' },
+      },
       allowedHosts: ['.ngrok-free.app','.loca.lt']
     },
 
@@ -83,7 +89,7 @@ export default defineConfig((ctx) => {
       config: {},
 
       // iconSet: 'material-icons', // Quasar icon set
-      // lang: 'en-US', // Quasar language pack
+      lang: 'en-US', // Quasar language pack
 
       // For special cases outside of where the auto-import strategy can have an impact
       // (like functional components as one of the examples),
@@ -144,7 +150,20 @@ export default defineConfig((ctx) => {
       // manifestFilename: 'manifest.json',
       // extendManifestJson (json) {},
       // useCredentialsForManifestTag: true,
-      // injectPwaMetaTags: false,
+      // Supply one status-bar tag; Quasar's default injection uses "default".
+      injectPwaMetaTags: ({ publicPath }) => [
+        '<meta name="mobile-web-app-capable" content="yes">',
+        '<meta name="apple-mobile-web-app-capable" content="yes">',
+        '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">',
+        '<meta name="apple-mobile-web-app-title" content="E-Shop">',
+        `<link rel="mask-icon" href="${publicPath}icons/safari-pinned-tab.svg" color="#f6f5f5">`,
+        `<meta name="msapplication-TileImage" content="${publicPath}icons/ms-icon-144x144.png">`,
+        '<meta name="msapplication-TileColor" content="#000000">',
+        `<link rel="apple-touch-icon" href="${publicPath}icons/apple-icon-120x120.png">`,
+        ...[152, 167, 180].map(size =>
+          `<link rel="apple-touch-icon" sizes="${size}x${size}" href="${publicPath}icons/apple-icon-${size}x${size}.png">`
+        ),
+      ].join(''),
       // extendPWACustomSWConf (esbuildConf) {},
       // extendGenerateSWOptions (cfg) {},
       // extendInjectManifestOptions (cfg) {}

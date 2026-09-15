@@ -6,15 +6,15 @@
     <!-- Main Content -->
     <main class="px-4 py-4">
       <!-- Search Header -->
-      <div class="flex gap-3 mb-4">
-        <div class="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-stone-100 text-gray-500">
-          <q-icon name="eva-search-outline
-" size="19px" class="relative bottom-[1px]" />
+      <div class="flex flex-nowrap gap-3 mb-4">
+        <div class="flex-1 min-w-0 flex flex-nowrap items-center gap-3 px-4 py-2.5 rounded-xl bg-stone-100 text-gray-500">
+          <q-icon name="eva-search-outline" size="19px" class="relative bottom-[1px]" />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Search products..."
-            class="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-500 outline-none"
+            aria-label="Search products"
+            class="flex-1 min-w-0 bg-transparent text-sm text-gray-800 placeholder-gray-500 outline-none"
             @keydown.enter="onSearch"
           />
         </div>
@@ -26,7 +26,7 @@
       <!-- Results Count -->
       <div class="flex items-center justify-between mb-4">
         <p class="text-sm text-gray-500">
-          <span class="font-medium text-gray-800">{{ filteredProducts.length }}</span> products found
+          <span class="font-medium text-gray-800">{{ filteredProducts.length }}</span> {{ filteredProducts.length === 1 ? 'product' : 'products' }} found
         </p>
         <button 
           v-if="searchQuery"
@@ -47,7 +47,7 @@
         <div class="w-16 h-16 rounded-full bg-stone-200 flex items-center justify-center mx-auto mb-4">
           <q-icon name="search_off" size="32px" class="text-gray-400" />
         </div>
-        <h3 class="text-base font-medium text-gray-700">No products found</h3>
+        <h3 class="search-empty-title text-gray-700">No products found</h3>
         <p class="text-sm text-gray-500 mt-1">
           Try adjusting your search
         </p>
@@ -58,7 +58,7 @@
         <div
           v-for="product in filteredProducts"
           :key="product.id"
-          class="group flex flex-col rounded-xl bg-white overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+          class="product-card group min-w-0 flex flex-col rounded-xl bg-white overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
           @click="goToProduct(product.id)"
         >
           <!-- Image Container -->
@@ -97,11 +97,11 @@
           </div>
 
           <!-- Content -->
-          <div class="flex flex-col gap-1 p-3">
+          <div class="flex min-w-0 flex-col gap-1 p-3">
             <span v-if="product.category_name" class="text-[10px] uppercase tracking-wider text-gray-400 font-medium">
               {{ product.category_name }}
             </span>
-            <h3 class="text-sm font-medium text-gray-800 line-clamp-2 leading-tight">
+            <h3 class="product-card-title text-gray-800" :title="product.name">
               {{ product.name }}
             </h3>
             <div class="flex items-center gap-2 mt-1">
@@ -163,7 +163,7 @@ const toggleWishlist = (product) => {
 // Format price helper
 const formatPrice = (price) => {
   if (price === undefined || price === null) return '฿0'
-  return '฿' + Number(price).toLocaleString()
+  return '฿' + Number(price).toLocaleString('en-US')
 }
 
 // Fetch products from API
@@ -193,6 +193,28 @@ const goToProduct = (productId) => {
 </script>
 
 <style scoped>
+/* Unlayered scoped rules override Quasar's heading defaults. */
+.product-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: normal;
+  min-height: 42px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.search-empty-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

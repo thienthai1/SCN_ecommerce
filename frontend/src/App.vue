@@ -18,6 +18,10 @@
 </template>
 
 <script setup>
+import '@fontsource/poppins/latin-400.css';
+import '@fontsource/poppins/latin-500.css';
+import '@fontsource/poppins/latin-600.css';
+import '@fontsource/poppins/latin-700.css';
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Loading from './components/Loading.vue';

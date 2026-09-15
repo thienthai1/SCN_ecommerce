@@ -1,10 +1,13 @@
 // Omise payment routes for PromptPay
 module.exports = function registerOmisePaymentRoutes(app, opts = {}) {
   const Omise = require('omise');
-  const admin = require('firebase-admin');
-  const db = admin.firestore();
+  const { db, FieldValue } = opts;
 
-  const omise = Omise({ secretKey: process.env.OMISE_SECRET_KEY });
+  const omise = process.env.OMISE_SECRET_KEY ? Omise({ secretKey: process.env.OMISE_SECRET_KEY }) : null;
+  app.use('/api/payments/omise', (req, res, next) => {
+    if (!omise) return res.status(503).json({ error: 'Omise is not configured. Set OMISE_SECRET_KEY to enable online payments.' });
+    next();
+  });
 
   // Create a PromptPay charge/source
   app.post('/api/payments/omise/create', async (req, res) => {
@@ -31,7 +34,7 @@ module.exports = function registerOmisePaymentRoutes(app, opts = {}) {
           status: charge.status,
           source: charge.source || null,
           raw: charge,
-          createdAt: admin.firestore.FieldValue.serverTimestamp()
+          createdAt: FieldValue.serverTimestamp()
         });
       } catch (e) {
         console.error('Failed to persist payment record', e);
@@ -99,7 +102,7 @@ module.exports = function registerOmisePaymentRoutes(app, opts = {}) {
               status: charge.status,
               source: charge.source || null,
               raw: charge,
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              updatedAt: FieldValue.serverTimestamp()
             });
           } else {
             // If no existing record, create one for traceability
@@ -111,7 +114,7 @@ module.exports = function registerOmisePaymentRoutes(app, opts = {}) {
               status: charge.status,
               source: charge.source || null,
               raw: charge,
-              createdAt: admin.firestore.FieldValue.serverTimestamp()
+              createdAt: FieldValue.serverTimestamp()
             });
           }
 
@@ -126,9 +129,9 @@ module.exports = function registerOmisePaymentRoutes(app, opts = {}) {
                     status: charge.status,
                     source: charge.source || null,
                     raw: charge,
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: FieldValue.serverTimestamp(),
                     payment_status: 'paid',
-                    paid_at: admin.firestore.FieldValue.serverTimestamp()
+                    paid_at: FieldValue.serverTimestamp()
                 });
                 
               }

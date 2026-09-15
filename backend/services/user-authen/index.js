@@ -1,5 +1,4 @@
 const express = require('express');
-const admin = require('firebase-admin');
 
 module.exports = function registerAuthRoutes(app, deps = {}) {
   if (!app) throw new Error('registerAuthRoutes requires express app');
@@ -43,51 +42,9 @@ module.exports = function registerAuthRoutes(app, deps = {}) {
         phone,
         password: hashed,
         is_active: true,
-        created_at: admin.firestore.FieldValue.serverTimestamp()
+        created_at: FieldValue.serverTimestamp()
       });
       res.status(201).json({ id: docRef.id, username, name, email: email || '', phone, is_active: true });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Internal error' });
-    }
-  });
-
-  app.post('/user/line/register', async (req, res) => {
-    try {
-      const { username, name, email, phone } = req.body;
-      if (!username|| !name || !phone) return res.status(400).json({ error: 'username, and phone are required' });
-      const existing = await findUserByUsername(username);
-      if (existing) return res.status(409).json({ error: 'Username already exists' });
-
-      // check phone uniqueness
-      const phoneSnap = await usersCollection.where('phone', '==', phone).limit(1).get();
-      if (!phoneSnap.empty) return res.status(409).json({ error: 'Phone already registered' });
-
-      // const hashed = bcrypt.hashSync(password, 10);
-      const docRef = await usersCollection.add({
-        username,
-        name,
-        email: email || '',
-        phone,
-        is_active: true,
-        is_line_user: true,
-        created_at: admin.firestore.FieldValue.serverTimestamp()
-      });
-      res.status(201).json({ id: docRef.id, username, name, email: email || '', phone, is_active: true });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Internal error' });
-    }
-  });
-
-  app.post('/user/line/login', async (req, res) => {
-    try {
-      const { username } = req.body; // `username` may be actual username or phone number
-      if (!username) return res.status(400).json({ error: 'username and password are required' });
-      const user = await findUserByIdentifier(username);
-      if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-      const token = generateToken(user);
-      res.json({ token });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Internal error' });
@@ -226,7 +183,7 @@ module.exports = function registerAuthRoutes(app, deps = {}) {
         // fetch permission docs in chunks
         for (let i = 0; i < permissionIds.length; i += chunkSize) {
           const chunk = permissionIds.slice(i, i + chunkSize);
-          const permSnap = await db.collection('permissions').where(admin.firestore.FieldPath.documentId(), 'in', chunk).get();
+          const permSnap = await db.collection('permissions').where('__name__', 'in', chunk).get();
           permSnap.docs.forEach(d => permissions.push({ id: d.id, ...d.data() }));
         }
       }
@@ -249,7 +206,7 @@ module.exports = function registerAuthRoutes(app, deps = {}) {
       const docRef = await rolesCollection.add({
         name,
         description: description || '',
-        created_at: admin.firestore.FieldValue.serverTimestamp()
+        created_at: FieldValue.serverTimestamp()
       });
       res.status(201).json({ id: docRef.id, name, description: description || '' });
     } catch (err) {

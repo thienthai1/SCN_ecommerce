@@ -123,7 +123,7 @@ const removeFromWishlist = (product) => {
 // Format price helper
 const formatPrice = (price) => {
   if (price === undefined || price === null) return '฿0'
-  return '฿' + Number(price).toLocaleString()
+  return '฿' + Number(price).toLocaleString('en-US')
 }
 
 // Navigate to product detail page

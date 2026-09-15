@@ -322,7 +322,7 @@ const loadRecentOrders = async () => {
         customer: order.customer_name || 'Guest',
         items: order.order_items?.length || 0,
         date: formatOrderDate(order.created_at),
-        total: `฿${(order.total_price || 0).toLocaleString()}`,
+        total: `฿${(order.total_price || 0).toLocaleString('en-US')}`,
         status: order.status || 'pending'
       }));
     
@@ -404,11 +404,19 @@ onMounted(async () => {
 });
 
 // Logout handler
-const handleLogout = () => {
-  localStorage.removeItem('user_token');
-  localStorage.removeItem('user_profile');
-  localStorage.removeItem('user_current_page');
-  router.push('/');
+const handleLogout = async () => {
+  try {
+    await api.post('/user/logout');
+  } catch (error) {
+    console.warn('Server logout failed; clearing the local session.', error);
+  } finally {
+    localStorage.removeItem('user_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_profile');
+    localStorage.removeItem('admin_current_page');
+    sessionStorage.removeItem('redirectAfterLogin');
+    await router.replace('/admin/login');
+  }
 };
 
 // Navigate to page and close sidebar on mobile

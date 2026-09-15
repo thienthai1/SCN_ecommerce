@@ -1,6 +1,6 @@
 <template>
   <!-- Header - Mockup Style -->
-  <header class="sticky top-0 z-50 w-full bg-[var(--theme-white-color)] backdrop-blur-md border-b border-gray-200">
+  <header class="storefront-header sticky top-0 z-50 w-full bg-[var(--theme-white-color)] backdrop-blur-md border-b border-gray-200">
     <div class="flex items-center justify-between px-4 h-14">
       <!-- Logo and Business Name -->
       <router-link to="/" class="flex items-center gap-2">
@@ -24,6 +24,9 @@
         <!-- Notification Bell -->
         <button 
           @click="handleNotificationClick"
+          aria-label="Notifications"
+          :aria-expanded="showNotificationPanel"
+          aria-controls="notification-panel"
           class="relative p-2.5 rounded-full hover:bg-gray-100 transition-colors"
           :disabled="subscribing"
         >
@@ -39,7 +42,8 @@
 
         <!-- Cart -->
         <router-link 
-          to="/cart" 
+          to="/cart"
+          aria-label="Shopping cart"
           class="relative p-2.5 rounded-full hover:bg-gray-100 transition-colors"
         >
           <q-icon name="eva-shopping-cart-outline" size="20px" class="text-gray-700" />
@@ -48,29 +52,47 @@
           </span>
         </router-link>
 
-        <!-- Profile -->
-        <div>
-          <button
-            v-if="userProfile"
-            @click="handleAccountClick"
-            class="p-2.5 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <q-icon name="eva-person-outline" size="20px" class="text-gray-700" />
-          </button>
 
-          <router-link
-            v-else
-            to="/signin"
-            class="p-2.5 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <span class="px-2 py-1 rounded-[3px] bg-[#47c72a] text-white flex items-center justify-center font-semibold text-xs ml-3">
-              ล็อคอิน
-            </span>
-          </router-link>
-        </div>
       </div>
     </div>
   </header>
+
+  <q-dialog v-model="showNotificationPanel" class="notification-dialog" position="right" maximized transition-show="slide-left" transition-hide="slide-right">
+    <q-card id="notification-panel" class="notification-panel" aria-labelledby="notification-panel-title">
+      <q-card-section class="notification-header">
+        <h2 id="notification-panel-title" class="notification-heading">Notifications</h2>
+        <q-btn flat round dense icon="close" class="notification-close" aria-label="Close notifications" v-close-popup />
+      </q-card-section>
+
+      <div class="notification-body" aria-live="polite" :aria-busy="loadingNotifications">
+        <div v-if="loadingNotifications" class="notification-state" role="status">
+          <q-spinner size="28px" color="primary" />
+          <p class="notification-description">Loading notifications...</p>
+        </div>
+        <div v-else-if="notificationError" class="notification-state">
+          <p class="notification-description">Unable to load notifications. Please try again.</p>
+          <q-btn flat color="primary" label="Try again" class="mt-3" @click="loadNotifications" />
+        </div>
+        <div v-else-if="notifications.length === 0" class="notification-state">
+          <q-icon name="notifications_none" size="48px" class="text-gray-300 mb-3" />
+          <p class="notification-state-title">No notifications yet</p>
+          <p class="notification-description">Announcements and updates will appear here.</p>
+        </div>
+        <q-list v-else separator>
+          <q-item v-for="notification in notifications" :key="notification.id" class="notification-item">
+            <q-item-section avatar top>
+              <q-avatar color="grey-2" text-color="primary" icon="notifications_none" />
+            </q-item-section>
+            <q-item-section class="notification-content">
+              <q-item-label class="notification-item-title">{{ notification.title }}</q-item-label>
+              <p class="notification-description notification-message">{{ notification.description }}</p>
+              <q-item-label v-if="typeof notification.date === 'string'" caption class="notification-date">{{ notification.date }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+    </q-card>
+  </q-dialog>
 
   <!-- Success Modal -->
   <q-dialog v-model="showSuccessModal">
@@ -93,41 +115,13 @@
     </q-card>
   </q-dialog>
 
-  <!-- Profile Dialog -->
-  <q-dialog v-model="showProfileDialog">
-    <q-card class="rounded-2xl" style="min-width: 300px; max-width: 360px;">
-      <q-card-section class="py-4">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-full bg-[#FF1925] text-white flex items-center justify-center font-semibold text-lg">
-            {{ userProfile && (userProfile.name || userProfile.username) ? (userProfile.name ? userProfile.name.charAt(0) : userProfile.username.charAt(0)) : '?' }}
-          </div>
-          <div>
-            <div class="text-gray-800 font-semibold">{{ userProfile?.name || userProfile?.username || 'Guest' }}</div>
-            <div class="text-sm text-gray-500">{{ userProfile?.email || '' }}</div>
-          </div>
-        </div>
-      </q-card-section>
 
-      <q-separator />
-
-      <q-card-section class="py-2">
-        <div class="text-sm text-gray-600">Mobile</div>
-        <div class="font-medium text-gray-800">{{ userProfile?.phone || '-' }}</div>
-      </q-card-section>
-
-      <q-card-actions align="right" class="pb-4 pr-4">
-        <q-btn flat label="Close" color="primary" @click="showProfileDialog = false" />
-        <q-btn unelevated color="negative" label="Logout" @click="handleLogout" />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from 'src/boot/axios'
-import liff from '@line/liff'
 
 const VAPID_PUBLIC_KEY = 'BLnzozSiqMOtMmrHeV5MTrdCAAIgiaf2mB7_PoRkynwmsCfal-3hLQ4wo2_kguGhR3jDSAnPDFiB8Uhu1qZxyU4'
 
@@ -137,59 +131,25 @@ const router = useRouter()
 const isSubscribed = ref(false)
 const subscribing = ref(false)
 const showSuccessModal = ref(false)
+const showNotificationPanel = ref(false)
+const notifications = ref([])
+const loadingNotifications = ref(false)
+const notificationError = ref(false)
 
-// User profile state
-const userProfile = ref(null)
-const showProfileDialog = ref(false)
-
-const fetchProfile = async () => {
+async function loadNotifications() {
+  loadingNotifications.value = true
+  notificationError.value = false
   try {
-    const token = localStorage.getItem('user_token') || localStorage.getItem('token')
-    if (token == null){
-      console.log('No token found, skipping profile fetch')
-      userProfile.value = null
-    }else{
-      console.log*('Fetching profile with token:')
-      const res = await api.get('/profile', { headers: { Authorization: `Bearer ${token}` } })
-      userProfile.value = res.data
-    }
-  } catch (err) {
-    console.error('Could not fetch profile:', err)
-    userProfile.value = null
+    const { data } = await api.get('/notifications')
+    // This endpoint also includes targeted sends; the shop panel shows public announcements.
+    notifications.value = (Array.isArray(data.notifications) ? data.notifications : [])
+      .filter(notification => !notification.user_id)
+  } catch (error) {
+    notificationError.value = true
+    console.error('Error loading notifications:', error)
+  } finally {
+    loadingNotifications.value = false
   }
-}
-
-const handleAccountClick = () => {
-  const token = localStorage.getItem('user_token') || localStorage.getItem('token')
-  if (!token) {
-    router.push('/signin')
-    return
-  }
-  router.push('/profile')
-}
-
-const checkLineLougout = () => {
-liff.init({ liffId: '2008961587-8IiiFID9' })
-    .then(() => {
-      if (liff.isLoggedIn()) {
-        console.log('User is logged in with LIFF, logging out...')
-        liff.logout()
-      }
-    })
-    .catch(err => {
-      console.error('LIFF Initialization failed', err)
-    })
-}
-
-const handleLogout = () => {
-  localStorage.removeItem('user_token')
-  localStorage.removeItem('token')
-  localStorage.removeItem('user_profile')
-  userProfile.value = null
-  showProfileDialog.value = false
-  console.log('check line logout')
-  checkLineLougout()
-  router.push('/')
 }
 
 const updateCartCount = () => {
@@ -248,7 +208,8 @@ async function handleNotificationClick() {
   }
 
   if (isSubscribed.value) {
-    // Already subscribed, maybe show notifications page or do nothing
+    showNotificationPanel.value = true
+    await loadNotifications()
     return
   }
 
@@ -308,7 +269,6 @@ const handleStorageChange = () => updateCartCount()
 
 onMounted(() => {
   updateCartCount()
-  fetchProfile()
   checkSubscriptionStatus()
   window.addEventListener('storage', handleStorageChange)
   window.addEventListener('cart-updated', handleStorageChange)
@@ -321,4 +281,133 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.storefront-header {
+  padding-top: env(safe-area-inset-top);
+}
+
+.notification-panel {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  width: 100%;
+  max-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  border-radius: 0;
+  overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 16px;
+  padding: calc(16px + env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 16px max(20px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--border-light);
+}
+
+.notification-heading {
+  min-width: 0;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: normal;
+  overflow-wrap: anywhere;
+}
+
+.notification-close {
+  flex: 0 0 auto;
+  color: var(--text-secondary);
+}
+
+.notification-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.notification-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.notification-state-title {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.notification-description {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.notification-state .notification-description {
+  max-width: 280px;
+}
+
+.notification-item {
+  padding: 16px 20px;
+}
+
+.notification-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.notification-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5 !important;
+}
+
+.notification-message {
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+
+.notification-date {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-light);
+}
+
+</style>
+
+<style>
+/* QDialog is teleported to body; override Quasar's iOS dialog safe-area padding.
+   The panel header/body handle safe areas while the surface fills the viewport. */
+.q-dialog.notification-dialog .q-dialog__inner {
+  inset: 0;
+  padding: 0 !important;
+}
+
+.q-dialog.notification-dialog .q-dialog__inner > .notification-panel {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  border-radius: 0 !important;
+}
 </style>

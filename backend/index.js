@@ -1,87 +1,15 @@
+// Load local configuration before registering any services.
+const config = require('./lib/config');
+const { LocalDatabase, Timestamp, FieldValue } = require('./lib/database');
+const { createStorage } = require('./lib/storage');
 // dependencies
 const express = require('express');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { initializeApp, applicationDefault, cert } = require('firebase-admin/app');
-const { getFirestore, Timestamp, FieldValue, Filter } = require('firebase-admin/firestore');
-const { getStorage } = require('firebase-admin/storage');
 inspect = require('util').inspect;
 var busboy = require('busboy');
 let webpush = require('web-push');
-const { Queue, Worker } = require('bullmq');
-const IORedis = require('ioredis');
-
-// Redis optional configuration for BullMQ
-const redisEnabled = false;
-let redisConnection = null;
-if (redisEnabled) {
-    redisConnection = new IORedis(process.env.REDIS_URL || 'rediss://red-d5oc3dvpm1nc738v1aeg:bb4blo3Q706FWhQHgy8W6Ffm8Yl87gy2@singapore-keyvalue.render.com:6379', {
-        maxRetriesPerRequest: null
-    });
-}
-
-
-// Notification Queue (use Redis-backed2 Queue when enabled, otherwise an in-memory fallback)
-let notificationQueue;
-if (redisEnabled) {
-    notificationQueue = new Queue('notifications', { connection: redisConnection });
-} else {
-    const { EventEmitter } = require('events');
-    class InMemoryQueue extends EventEmitter {
-        constructor() {
-            super();
-            this.jobs = new Map();
-            this._processor = null;
-        }
-        setProcessor(fn) { this._processor = fn; }
-        async add(name, data, opts = {}) {
-            const id = `im-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            const timestamp = Date.now();
-            const job = {
-                id,
-                name,
-                data,
-                opts,
-                timestamp,
-                getState: async () => 'waiting',
-                remove: async () => { this.jobs.delete(id); }
-            };
-            this.jobs.set(id, job);
-            const delay = opts.delay || 0;
-            if (delay <= 0) setImmediate(() => this._run(job));
-            else setTimeout(() => this._run(job), delay);
-            return job;
-        }
-        async getDelayed() {
-            return Array.from(this.jobs.values()).filter(j => j.opts && j.opts.delay && (j.timestamp + (j.opts.delay || 0) > Date.now()));
-        }
-        async getWaiting() {
-            return Array.from(this.jobs.values()).filter(j => !(j.opts && j.opts.delay));
-        }
-        async getJob(id) {
-            return this.jobs.get(id) || null;
-        }
-        async _run(job) {
-            if (!this._processor) return;
-            try {
-                await this._processor(job);
-                this.emit('completed', job, { success: true });
-            } catch (err) {
-                this.emit('failed', job, err);
-            } finally {
-                this.jobs.delete(job.id);
-            }
-        }
-    }
-    const inMemoryQueue = new InMemoryQueue();
-    notificationQueue = inMemoryQueue;
-}
-
-
-// initialize firebase admin SDK
-const serviceAccount = require('./service-account-key.json');
-
 // config express app
 const app = express();
 const port = process.env.PORT || 3000;
@@ -99,17 +27,23 @@ app.use((req, res, next) => {
     next();
 });
 
-initializeApp({
-  credential: cert(serviceAccount),
-  storageBucket: 'scnshop-3300f.firebasestorage.app'
+const db = new LocalDatabase(config.databasePath);
+const bucket = createStorage(config.uploadDir);
+app.use('/uploads', express.static(bucket.root, {
+  dotfiles: 'deny', index: false,
+  setHeaders: res => {
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('Content-Security-Policy', "default-src 'none'; sandbox");
+  }
+}));
+app.get('/health', (req, res) => {
+  db.sql.prepare('SELECT 1').get();
+  res.json({ status: 'ok', database: 'sqlite', storage: 'local' });
 });
-
-const db = getFirestore();
-let bucket = getStorage().bucket();
 let UUID = require('uuid-v4');
 
 // Global auth configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_THIS_SECRET';
+const JWT_SECRET = config.jwtSecret();
 const tokenBlacklist = new Set();
 const usersCollection = db.collection('users');
 const rolesCollection = db.collection('roles');
@@ -218,16 +152,16 @@ registerAuthRoutes(app, {
 });
 
 
-// Cloud Scheduler routes (mounted on the same backend port)
-const registerCloudSchedulerRoutes = require('./services/clould-scheduler');
+// Local scheduler routes (mounted on the same backend port)
+const registerLocalScheduler = require('./services/local-scheduler');
 
 // Omise Payment routes
 const registerOmisePaymentRoutes = require('./services/omise-payment');
 
-// Register Cloud Scheduler routes after helper functions (so we can inject db/Timestamp/sendPushNotificationToAll)
-registerCloudSchedulerRoutes(app, { db, Timestamp, sendPushNotificationToAll, authenticate, ensureAdmin });
+// Register local scheduler routes after helper functions (so we can inject db/Timestamp/sendPushNotificationToAll)
+const scheduler = registerLocalScheduler(app, { db, Timestamp, sendPushNotificationToAll, authenticate, ensureAdmin });
 
-registerOmisePaymentRoutes(app, { authenticate, ensureAdmin });
+registerOmisePaymentRoutes(app, { db, FieldValue, authenticate, ensureAdmin });
 
 // Reusable function to send push notifications to all subscribers
 async function sendPushNotificationToAll(title, body, openUrl = '/#/') {
@@ -263,206 +197,7 @@ async function sendPushNotificationToAll(title, body, openUrl = '/#/') {
     }
 }
 
-// Notification Queue Worker - processes scheduled notifications
-let notificationWorker;
-const processor = async (job) => {
-    const { title, body, openUrl, firestoreDocId } = job.data;
-    console.log(`Processing scheduled notification: ${title}`);
-    try {
-        await sendPushNotificationToAll(title, body, openUrl);
-        await db.collection('notifications').add({
-            title,
-            description: body,
-            date: Timestamp.now()
-        });
-        console.log('Added notification to notifications collection');
-        if (firestoreDocId) {
-            await db.collection('scheduled_notifications').doc(firestoreDocId).update({
-                status: 'completed',
-                completedAt: Timestamp.now()
-            });
-            console.log(`Updated Firestore doc ${firestoreDocId} to completed`);
-        }
-        return { success: true, sentAt: new Date().toISOString() };
-    } catch (err) {
-        if (firestoreDocId) {
-            await db.collection('scheduled_notifications').doc(firestoreDocId).update({
-                status: 'failed',
-                failedAt: Timestamp.now(),
-                error: err.message
-            });
-        }
-        throw err;
-    }
-};
-
-if (redisEnabled) {
-    notificationWorker = new Worker('notifications', processor, { connection: redisConnection });
-} else {
-    // Attach the processor to the in-memory queue and use it as the worker emitter
-    if (typeof notificationQueue.setProcessor === 'function') {
-        notificationQueue.setProcessor(async (job) => {
-            // job in in-memory queue matches expected shape
-            await processor(job);
-        });
-    }
-    notificationWorker = notificationQueue; // in-memory queue also emits events
-}
-
-notificationWorker.on('completed', (job, result) => {
-    console.log(`Notification job ${job.id} completed:`, result);
-});
-
-notificationWorker.on('failed', (job, err) => {
-    console.error(`Notification job ${job.id} failed:`, err.message || err);
-});
-
-// POST /schedule-notification - Schedule a notification to be sent at a specific time
-// scheduledTime: ISO 8601 date string (e.g., "2026-01-18T10:00:00Z")
-app.post('/schedule-notification', async (req, res) => {
-    try {
-        const { title, body, openUrl, scheduledTime } = req.body;
-        
-        if (!title || !body) {
-            return res.status(400).json({ error: 'title and body are required' });
-        }
-        
-        if (!scheduledTime) {
-            return res.status(400).json({ error: 'scheduledTime is required (ISO 8601 format, e.g., "2026-01-18T10:00:00Z")' });
-        }
-        
-        const scheduledDate = new Date(scheduledTime);
-        const now = new Date();
-        const delay = scheduledDate.getTime() - now.getTime();
-        
-        if (delay < 0) {
-            return res.status(400).json({ error: 'scheduledTime must be in the future' });
-        }
-        
-        const jobId = `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Save to Firestore with pending status
-        const firestoreDoc = await db.collection('scheduled_notifications').add({
-            title,
-            body,
-            openUrl: openUrl || '/#/',
-            scheduledFor: Timestamp.fromDate(scheduledDate),
-            status: 'pending',
-            jobId,
-            createdAt: Timestamp.now()
-        });
-        
-        const job = await notificationQueue.add(
-            'scheduled-notification',
-            { title, body, openUrl: openUrl || '/#/', firestoreDocId: firestoreDoc.id },
-            { delay, jobId }
-        );
-        
-        res.json({
-            message: 'Notification scheduled successfully',
-            jobId: job.id,
-            firestoreDocId: firestoreDoc.id,
-            scheduledFor: scheduledDate.toISOString(),
-            delayMs: delay
-        });
-    } catch (err) {
-        console.error('Error scheduling notification:', err);
-        res.status(500).json({ error: 'Failed to schedule notification' });
-    }
-});
-
-// GET /pending-notifications - Get all pending scheduled notifications
-app.get('/pending-notifications', async (req, res) => {
-    try {
-        const delayedJobs = await notificationQueue.getDelayed();
-        const waitingJobs = await notificationQueue.getWaiting();
-        
-        const pendingNotifications = [...delayedJobs, ...waitingJobs].map(job => ({
-            jobId: job.id,
-            title: job.data.title,
-            body: job.data.body,
-            openUrl: job.data.openUrl,
-            scheduledFor: new Date(job.timestamp + (job.opts.delay || 0)).toISOString(),
-            delay: job.opts.delay,
-            createdAt: new Date(job.timestamp).toISOString()
-        }));
-        
-        // Sort by scheduled time
-        pendingNotifications.sort((a, b) => new Date(a.scheduledFor) - new Date(b.scheduledFor));
-        
-        res.json({
-            count: pendingNotifications.length,
-            notifications: pendingNotifications
-        });
-    } catch (err) {
-        console.error('Error fetching pending notifications:', err);
-        res.status(500).json({ error: 'Failed to fetch pending notifications' });
-    }
-});
-
-// DELETE /pending-notifications/:jobId - Cancel a specific pending notification
-app.delete('/pending-notifications/:jobId', async (req, res) => {
-    try {
-        const { jobId } = req.params;
-        
-        const job = await notificationQueue.getJob(jobId);
-        
-        if (!job) {
-            return res.status(404).json({ error: 'Notification job not found' });
-        }
-        
-        // Check if job is still pending (not completed or failed)
-        const state = await job.getState();
-        if (state === 'completed' || state === 'failed') {
-            return res.status(400).json({ 
-                error: 'Cannot cancel notification', 
-                reason: `Job is already ${state}` 
-            });
-        }
-        
-        // Update Firestore document status to cancelled
-        if (job.data.firestoreDocId) {
-            await db.collection('scheduled_notifications').doc(job.data.firestoreDocId).update({
-                status: 'cancelled',
-                cancelledAt: Timestamp.now()
-            });
-        }
-        
-        await job.remove();
-        
-        res.json({
-            message: 'Notification cancelled successfully',
-            jobId,
-            title: job.data.title
-        });
-    } catch (err) {
-        console.error('Error cancelling notification:', err);
-        res.status(500).json({ error: 'Failed to cancel notification' });
-    }
-});
-
-// DELETE /pending-notifications - Clear all pending notifications
-app.delete('/pending-notifications', async (req, res) => {
-    try {
-        const delayedJobs = await notificationQueue.getDelayed();
-        const waitingJobs = await notificationQueue.getWaiting();
-        
-        const allJobs = [...delayedJobs, ...waitingJobs];
-        const removedCount = allJobs.length;
-        
-        await Promise.all(allJobs.map(job => job.remove()));
-        
-        res.json({
-            message: 'All pending notifications cleared',
-            removedCount
-        });
-    } catch (err) {
-        console.error('Error clearing pending notifications:', err);
-        res.status(500).json({ error: 'Failed to clear pending notifications' });
-    }
-});
-
-// initialize firebase admin SDK
+// Backend root
 app.get('/', (req, res) => {
     res.send('Hello World!');
 });
@@ -482,7 +217,7 @@ app.post('/login', async (req, res) => {
     }
     
     try {
-        // Find user in Firestore by username
+        // Find user in SQLite by username
         const usersSnapshot = await db.collection('user').where('username', '==', username).get();
         
         if (usersSnapshot.empty) {
@@ -527,7 +262,7 @@ app.post('/change-password', async (req, res) => {
     }
     
     try {
-        // Find user in Firestore by username
+        // Find user in SQLite by username
         const usersSnapshot = await db.collection('user').where('username', '==', username).get();
         
         if (usersSnapshot.empty) {
@@ -563,8 +298,8 @@ app.post('/change-password', async (req, res) => {
 });
 
 // listen
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+const server = app.listen(port, () => {
+    console.log(`Server running on port ${server.address().port}`);
 });
 
 // Create subscription (attach to authenticated user)
@@ -606,7 +341,7 @@ app.post('/createSubscription', authenticate, async (req, res) => {
         }
 
         // Save subscription into user's subscription list (multiple devices)
-        // Note: Firestore does not allow serverTimestamp() inside arrayUnion elements,
+        // Note: SQLite does not allow serverTimestamp() inside arrayUnion elements,
         // so we store only endpoint+keys in the array and set a separate last_subscription_at timestamp.
         try {
             await usersCollection.doc(userId).update({
@@ -762,7 +497,7 @@ app.get('/articles', async (req, res) => {
         const snapshot = await db.collection('article').orderBy('time', 'desc').get();
         const articles = snapshot.docs.map(doc => {
             const data = doc.data();
-            // Convert Firestore Timestamp to ISO string when possible
+            // Convert SQLite Timestamp to ISO string when possible
             if (data && data.time && typeof data.time.toDate === 'function') {
                 data.time = data.time.toDate().toISOString();
             }
@@ -896,7 +631,7 @@ app.get('/notifications', async (req, res) => {
         console.log('Fetched notifications snapshot:', snapshot);
         const notifications = snapshot.docs.map(doc => {
             const data = doc.data();
-            // Convert Firestore Timestamp to readable string (field is 'date')
+            // Convert SQLite Timestamp to readable string (field is 'date')
             if (data && data.date && typeof data.date.toDate === 'function') {
                 const date = data.date.toDate();
                 const now = new Date();
@@ -1028,7 +763,7 @@ app.post('/sendNotificationToUser', authenticate, ensureAdmin, async (req, res) 
         const successes = sendResults.filter(r => r.status === 'fulfilled' && r.value && r.value.success).length;
         const failures = sendResults.length - successes;
 
-        // Record a single notification entry (with stats) to Firestore
+        // Record a single notification entry (with stats) to SQLite
         await db.collection('notifications').add({ title, description: body, user_id, date: Timestamp.now(), delivered: successes, failed: failures });
 
         return res.json({ message: 'Notification send summary', user_id, attempted: sendResults.length, delivered: successes, failed: failures, details: sendResults.map(r => (r.status === 'fulfilled' ? r.value : { success: false, error: r.reason })) });
@@ -1206,3 +941,13 @@ app.delete('/slides/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to delete slide' });
     }
 });
+
+// Finish in-flight work before closing the local database.
+async function shutdown() {
+  const timeout = setTimeout(() => process.exit(1), 9000);
+  timeout.unref();
+  await scheduler.close();
+  server.close(() => { db.close(); clearTimeout(timeout); });
+}
+process.once('SIGTERM', shutdown);
+process.once('SIGINT', shutdown);

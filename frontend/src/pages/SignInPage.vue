@@ -115,14 +115,6 @@
                 </button>
               </div> -->
             </form>
-            <button
-              type="button"
-              class="mt-4 w-full h-11 rounded-xl bg-[#00c300] text-white font-semibold flex items-center justify-center gap-2 shadow-md hover:brightness-105 active:brightness-95 transition"
-              @click="linelogin"
-            >
-              <img src="/icons/line-logo.svg" alt="LINE" class="w-9 h-9" />
-              <span class="text-sm">Log in with LINE</span>
-            </button>
           </div>
         </div>
 
@@ -150,7 +142,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../boot/axios'
-import liff from '@line/liff'
 
 const router = useRouter()
 
@@ -159,53 +150,26 @@ const password = ref('')
 const showPassword = ref(false)
 const loading = ref(false)
 const error = ref('')
-const LIFF_ID = import.meta.env.VITE_LINE_CHANNEL_ID
 
-// Check if already logged in
-onMounted(() => {
+const getRedirectPath = () => {
+  const path = sessionStorage.getItem('redirectAfterLogin') || '/'
+  sessionStorage.removeItem('redirectAfterLogin')
+  return path
+}
+
+onMounted(async () => {
   const token = localStorage.getItem('user_token')
-  if (token) {
-    router.push('/')
+  if (!token) return
+
+  try {
+    await api.get('/profile', { headers: { Authorization: 'Bearer ' + token } })
+    await router.replace(getRedirectPath())
+  } catch {
+    localStorage.removeItem('user_token')
+    localStorage.removeItem('token')
+    localStorage.removeItem('user_profile')
   }
 })
-
-const linelogin = () => {
-  if (!LIFF_ID) {
-    console.error('Missing LIFF ID. Set VITE_LINE_CHANNEL_ID in your .env')
-    return
-  }
-
-  liff.init({ liffId: LIFF_ID })
-    .then(() => {
-      if (!liff.isLoggedIn()) {
-        liff.login()
-      } else {
-        liff.getProfile()
-          .then(async (profile) => {
-            const username = profile.userId
-
-            const loginRes = await api.post('/user/line/login', { username })
-            const token = loginRes?.data?.token
-            if (token) {
-              localStorage.setItem('user_token', token)
-              try {
-                const profileRes = await api.get('/profile', { headers: { Authorization: `Bearer ${token}` } })
-                localStorage.setItem('user_profile', JSON.stringify(profileRes.data))
-              } catch (e) {
-                console.warn('Could not fetch profile after auto-login', e)
-              }
-              router.push('/')
-            }
-          })
-          .catch(err => {
-            console.error('Error getting profile:', err)
-          })
-      }
-    })
-    .catch(err => {
-      console.error('LIFF Initialization failed', err)
-    })
-}
 
 const handleLogin = async () => {
   error.value = ''
@@ -231,14 +195,7 @@ const handleLogin = async () => {
         console.warn('Could not fetch profile:', profileErr)
       }
 
-      // Redirect to intended destination or home
-      const redirectPath = sessionStorage.getItem('redirectAfterLogin')
-      if (redirectPath) {
-        sessionStorage.removeItem('redirectAfterLogin')
-        router.push(redirectPath)
-      } else {
-        router.push('/')
-      }
+      await router.replace(getRedirectPath())
     }
   } catch (err) {
     if (err.response?.data?.error) {

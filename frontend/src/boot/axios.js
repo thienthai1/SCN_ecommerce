@@ -1,14 +1,14 @@
 import { defineBoot } from '#q-app/wrappers'
 import axios from 'axios'
 
-const API_URL = process.env.API || 'http://localhost:3000'
+const API_URL = process.env.API || '/api'
 const api = axios.create({ baseURL: API_URL })
 
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('user_token')
-    if (token) {
+    if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
@@ -25,6 +25,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token expired or invalid - clear localStorage
       localStorage.removeItem('user_token')
+      localStorage.removeItem('token')
       localStorage.removeItem('user_profile')
     }
     return Promise.reject(error)

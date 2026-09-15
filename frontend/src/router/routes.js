@@ -20,7 +20,7 @@ const requireAuth = async (to, from, next) => {
 
 // Guest guard - redirect to dashboard if already logged in
 const requireGuest = (to, from, next) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('user_token') || localStorage.getItem('token')
   if (token) {
     next('/admin/dashboard')
   } else {
@@ -29,29 +29,41 @@ const requireGuest = (to, from, next) => {
 }
 
 // Customer auth guard - require login for customer pages
-const requireCustomerAuth = (to, from, next) => {
+const requireCustomerAuth = async (to, from, next) => {
   const token = localStorage.getItem('user_token')
   if (!token) {
-    // Store the intended destination for redirect after login
     sessionStorage.setItem('redirectAfterLogin', to.fullPath)
-    next('/signin')
-  } else {
+    next({ path: '/signin', replace: true })
+    return
+  }
+
+  try {
+    await api.get('/profile', { headers: { Authorization: 'Bearer ' + token } })
     next()
+  } catch (err) {
+    localStorage.removeItem('user_token')
+    localStorage.removeItem('token')
+    localStorage.removeItem('user_profile')
+    sessionStorage.setItem('redirectAfterLogin', to.fullPath)
+    next({ path: '/signin', replace: true })
   }
 }
 
 const routes = [
   {
     path: '/',
-    component: () => import('pages/Home.vue')
+    component: () => import('pages/Home.vue'),
+    meta: { bottomNav: 'home' }
   },
   {
     path: '/browse',
-    component: () => import('pages/BrowsePage.vue')
+    component: () => import('pages/BrowsePage.vue'),
+    meta: { bottomNav: 'home' }
   },
   {
     path: '/wishlist',
-    component: () => import('pages/WishlistPage.vue')
+    component: () => import('pages/WishlistPage.vue'),
+    meta: { bottomNav: 'home' }
   },
   {
     path: '/signin',
@@ -75,11 +87,13 @@ const routes = [
   },
   {
     path: '/cart',
-    component: () => import('pages/CartPage.vue')
+    component: () => import('pages/CartPage.vue'),
+    beforeEnter: requireCustomerAuth
   },
   {
     path: '/orders',
     component: () => import('pages/OrdersPage.vue'),
+    meta: { bottomNav: 'orders' },
     beforeEnter: requireCustomerAuth
   },
   {
@@ -90,6 +104,7 @@ const routes = [
   {
     path: '/profile',
     component: () => import('pages/ProfileSettingPage.vue'),
+    meta: { bottomNav: 'profile' },
     beforeEnter: requireCustomerAuth
   },
 
@@ -108,11 +123,6 @@ const routes = [
     path: '/admin',
     redirect: '/admin/dashboard'
   },
-  {
-    path: '/liffcallback',
-    component: () => import('pages/lineliffHandling.vue')
-  },
-
   // Always leave this as last one,
   // but you can also remove it
   {

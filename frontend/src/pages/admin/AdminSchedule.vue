@@ -284,7 +284,7 @@ const cronToDate = (cron, tz = 'UTC') => {
 const loadScheduledNotifications = async () => {
   loading.value = true;
   try {
-    const res = await api.get('/clould-scheduler/jobs');
+    const res = await api.get('/scheduler/jobs');
     const jobs = res.data.jobs || [];
     const mapped = jobs.map((j) => {
       const body = (j.httpTarget && j.httpTarget.body) || null;
@@ -334,8 +334,8 @@ const scheduleNotification = async () => {
 
       // Use our trigger endpoint as the job target so the backend can forward
       // to the notifications service and delete one-time jobs after firing.
-      //const triggerUrl = new URL('/clould-scheduler/trigger', window.location.origin).toString();
-      await api.post('/clould-scheduler/create-job', {
+      //const triggerUrl = new URL('/scheduler/trigger', window.location.origin).toString();
+      await api.post('/scheduler/create-job', {
         jobId: candidate,
         runAt,
         title: form.value.title,
@@ -362,7 +362,7 @@ const cancelNotification = async () => {
   
   canceling.value = true;
     try {
-      await api.delete(`/clould-scheduler/delete-job/${cancelingNotification.value.jobId}`);
+      await api.delete(`/scheduler/delete-job/${cancelingNotification.value.jobId}`);
       showCancelModal.value = false;
       cancelingNotification.value = null;
       loadScheduledNotifications();
@@ -382,7 +382,7 @@ const clearAllNotifications = async () => {
   clearingAll.value = true;
     try {
       for (const notification of scheduledNotifications.value) {
-        await api.delete(`/clould-scheduler/delete-job/${notification.jobId}`);
+        await api.delete(`/scheduler/delete-job/${notification.jobId}`);
       }
       showClearAllModal.value = false;
       loadScheduledNotifications();

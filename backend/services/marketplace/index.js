@@ -1,7 +1,7 @@
 module.exports = function registerMarketplaceRoutes(app, deps = {}) {
   
   if (!app) throw new Error('registerMarketplaceRoutes requires express app');
-  const { db, Timestamp, UUID, bucket, authenticate, ensureAdmin } = deps;
+  const { db, Timestamp, UUID, bucket, authenticate, ensureAdmin, FieldValue } = deps;
   const webpush = require('web-push');
 
   // POST /addproducts - create a new product
@@ -290,8 +290,8 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
       // Notify admin subscribers about the new order
       (async () => {
         try {
-          const notificationTitle = `คำสั่งซื้อไหม่จาก ${customer_name}`;
-          const notificationBody = 'โปรดตรวจสอบออร์เดอร์ของคุณ';
+          const notificationTitle = `New order from ${customer_name}`;
+          const notificationBody = 'Please review the new order.';
           const payload = JSON.stringify({ title: notificationTitle, body: notificationBody, openUrl: '/#/' });
 
           // Find admin user documents (username === 'admin')
@@ -388,7 +388,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
       for (const doc of ordersSnapshot.docs) {
         const orderData = doc.data();
         
-        // Convert Firestore Timestamp to ISO string
+        // Convert SQLite Timestamp to ISO string
         if (orderData.created_at && typeof orderData.created_at.toDate === 'function') {
           orderData.created_at = orderData.created_at.toDate().toISOString();
         }
@@ -725,7 +725,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
     }
   });
 
-  // POST /uploadPaymentImage - upload payment proof image to Firebase Storage
+  // POST /uploadPaymentImage - upload payment proof image to local storage
   app.post('/uploadPaymentImage', authenticate, async (req, res) => {
     try {
       if (!db) return res.status(500).json({ error: 'Database not initialized' });
@@ -759,10 +759,10 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
       
       // Generate unique file name
       const fileExtension = mimeType.split('/')[1] || 'png';
-      const uniqueFileName = fileName || `payment_${order_id}_${Date.now()}.${fileExtension}`;
+      const uniqueFileName = `${UUID()}_${fileName || `payment_${order_id}_${Date.now()}.${fileExtension}`}`;
       const filePath = `payment_proofs/${order_id}/${uniqueFileName}`;
 
-      // Upload to Firebase Storage
+      // Upload to local storage
       const file = bucket.file(filePath);
       await file.save(buffer, {
         metadata: {
@@ -775,12 +775,12 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
       });
 
       // Make the file publicly accessible
-      await file.makePublic();
+
 
       // Get public URL
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+      const publicUrl = file.publicUrl();
 
-      // Save tracking info to Firestore
+      // Save tracking info to SQLite
       const paymentImageId = UUID ? UUID() : undefined;
       const paymentImage = {
         id: paymentImageId,
@@ -826,9 +826,9 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
       (async () => {
         try {
           const orderData = orderDoc.exists ? orderDoc.data() || {} : {};
-          const customerName = orderData.customer_name || 'ลูกค้า';
-          const notificationTitle = `${customerName} ได้ทำการชำเงินแล้ว`;
-          const notificationBody = 'โปรดตรวจสอบหลักฐานการชำระงเิน';
+          const customerName = orderData.customer_name || 'Customer';
+          const notificationTitle = `${customerName} has submitted a payment`;
+          const notificationBody = 'Please review the payment receipt.';
           const payload = JSON.stringify({ title: notificationTitle, body: notificationBody, openUrl: '/#/' });
 
           // Find admin user documents (username === 'admin')
@@ -888,7 +888,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
     }
   });
 
-  // POST /uploadProductImage - upload product image to Firebase Storage
+  // POST /uploadProductImage - upload product image to local storage
   app.post('/uploadProductImage', authenticate, ensureAdmin, async (req, res) => {
     try {
       if (!db) return res.status(500).json({ error: 'Database not initialized' });
@@ -910,7 +910,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
 
       const buffer = Buffer.from(base64Data, 'base64');
       const fileExtension = mimeType.split('/')[1] || 'png';
-      const uniqueFileName = fileName || `product_${product_id || 'anon'}_${Date.now()}.${fileExtension}`;
+      const uniqueFileName = `${UUID()}_${fileName || `product_${product_id || 'anon'}_${Date.now()}.${fileExtension}`}`;
       const filePath = `product_images/${product_id || 'unspecified'}/${uniqueFileName}`;
 
       const file = bucket.file(filePath);
@@ -924,10 +924,10 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
         }
       });
 
-      await file.makePublic();
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
 
-      // Save tracking info to Firestore
+      const publicUrl = file.publicUrl();
+
+      // Save tracking info to SQLite
       const imageId = UUID ? UUID() : undefined;
       const imageRecord = {
         id: imageId,
@@ -1092,7 +1092,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
         return res.status(404).json({ error: 'Order not found' });
       }
 
-      // Delete payment images from storage and Firestore
+      // Delete payment images from storage and SQLite
       const paymentImagesSnap = await db.collection('payment_images')
         .where('order_id', '==', order_id)
         .get();
@@ -1101,7 +1101,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
 
       for (const doc of paymentImagesSnap.docs) {
         const data = doc.data();
-        // Delete from Firebase Storage if filePath exists
+        // Delete from local storage if filePath exists
         if (data.filePath) {
           try {
             await bucket.file(data.filePath).delete();
@@ -1109,11 +1109,11 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
             console.error('Error deleting file from storage:', storageErr.message);
           }
         }
-        // Delete from Firestore
+        // Delete from SQLite
         deletePromises.push(db.collection('payment_images').doc(doc.id).delete());
       }
 
-      // Delete slipped images from Firestore
+      // Delete slipped images from SQLite
       const slippedImagesSnap = await db.collection('slipped_image')
         .where('order_id', '==', order_id)
         .get();
@@ -1170,7 +1170,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
       const buffer = Buffer.from(base64Data, 'base64');
       
       const fileExtension = mimeType.split('/')[1] || 'png';
-      const uniqueFileName = `payment_gateway_${Date.now()}.${fileExtension}`;
+      const uniqueFileName = `payment_gateway_${UUID()}.${fileExtension}`;
       const filePath = `payment_gateway/${uniqueFileName}`;
 
       const file = bucket.file(filePath);
@@ -1180,8 +1180,8 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
         }
       });
 
-      await file.makePublic();
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+
+      const publicUrl = file.publicUrl();
 
       const gatewayId = UUID ? UUID() : undefined;
       const paymentGateway = {
@@ -1346,8 +1346,8 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
           const userId = updated.user_id;
           if (!userId) return;
 
-          const notificationTitle = 'สถานะการสั่งซื้อของท่านอัพเดทแล้ว';
-          const notificationBody = 'โปรดตรวจสอบสถานะคำสั่งซื้อของคุณ';
+          const notificationTitle = 'Your order status has been updated';
+          const notificationBody = 'Please check your order status.';
           const payload = JSON.stringify({ title: notificationTitle, body: notificationBody, openUrl: '/#/orders' });
 
           const endpoints = new Map();
@@ -1516,7 +1516,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
 
           const buffer = Buffer.from(base64Data, 'base64');
           const fileExtension = mimeType.split('/')[1] || 'png';
-          const uniqueFileName = fileName || `category_${categoryId || 'anon'}_${Date.now()}.${fileExtension}`;
+          const uniqueFileName = `${UUID()}_${fileName || `category_${categoryId || 'anon'}_${Date.now()}.${fileExtension}`}`;
           const filePath = `category_images/${categoryId || 'unspecified'}/${uniqueFileName}`;
 
           const file = bucket.file(filePath);
@@ -1529,8 +1529,8 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
               }
             }
           });
-          await file.makePublic();
-          const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+
+          const publicUrl = file.publicUrl();
 
           category.imageUrl = publicUrl;
           category.filePath = filePath;
@@ -1594,7 +1594,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
 
               const buffer = Buffer.from(base64Data, 'base64');
               const fileExtension = mimeType.split('/')[1] || 'png';
-              const uniqueFileName = fileName || `category_${id}_${Date.now()}.${fileExtension}`;
+              const uniqueFileName = `${UUID()}_${fileName || `category_${id}_${Date.now()}.${fileExtension}`}`;
               const filePath = `category_images/${id}/${uniqueFileName}`;
 
               const file = bucket.file(filePath);
@@ -1607,8 +1607,8 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
                   }
                 }
               });
-              await file.makePublic();
-              const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+
+              const publicUrl = file.publicUrl();
 
               updates.imageUrl = publicUrl;
               updates.filePath = filePath;
@@ -1778,7 +1778,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
         options: processedOptions
       };
 
-      // Save to Firestore
+      // Save to SQLite
       if (variantId) {
         await db.collection('product_variants').doc(variantId).set(variantDoc);
       } else {
@@ -2353,7 +2353,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
       // Generate unique filename
       const filename = `banners/${UUID ? UUID() : Date.now()}.${imageType === 'jpeg' ? 'jpg' : imageType}`;
       
-      // Upload to Firebase Storage
+      // Upload to local storage
       const file = bucket.file(filename);
       const uuid = UUID ? UUID() : Date.now().toString();
       
@@ -2361,13 +2361,13 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
         metadata: {
           contentType: `image/${imageType}`,
           metadata: {
-            firebaseStorageDownloadTokens: uuid
+            uploadId: uuid
           }
         }
       });
       
       // Generate public URL
-      const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filename)}?alt=media&token=${uuid}`;
+      const imageUrl = file.publicUrl();
       
       res.json({ image_url: imageUrl });
     } catch (err) {

@@ -138,7 +138,14 @@ const handleLogin = async () => {
       password: password.value
     });
 
-    if (response.data.token && username.value === 'admin') {
+    if (response.data.token) {
+      const roleCheck = await api.get('/users/isadmin', {
+        headers: { Authorization: `Bearer ${response.data.token}` }
+      });
+      if (!roleCheck.data.isAdmin) {
+        error.value = 'This account does not have administrator access';
+        return;
+      }
       // Store auth data
       localStorage.setItem('user_token', response.data.token);
       localStorage.setItem('user_profile', JSON.stringify(response.data.user));

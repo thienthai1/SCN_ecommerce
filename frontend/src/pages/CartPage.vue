@@ -6,8 +6,8 @@
         <button @click="$router.push('/')" class="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors">
           <q-icon name="arrow_back" size="20px" class="text-gray-700" />
         </button>
-        <span class="text-lg font-semibold text-gray-800">ตะกร้าสินค้า</span>
-        <span class="ml-auto text-sm text-gray-500">{{ cartItems.length }} รายการ</span>
+        <span class="text-lg font-semibold text-gray-800">Shopping Cart</span>
+        <span class="ml-auto text-sm text-gray-500">{{ cartItems.length }} items</span>
       </div>
     </header>
 
@@ -94,13 +94,13 @@
         <div class="bg-white rounded-xl p-4 shadow-sm space-y-3">
           <div class="space-y-3 text-sm">
             <div class="flex justify-between">
-              <span class="text-gray-500 font-bold">รวม</span>
+              <span class="text-gray-500 font-bold">Subtotal</span>
               <span class="text-gray-800">{{ formatPrice(subtotal) }}</span>
             </div>
             
             <!-- Shipping Option Dropdown -->
             <div class="space-y-2">
-              <label class="text-gray-500">วิธีการจัดส่ง</label>
+              <label class="text-gray-500">Shipping method</label>
               <select
                 v-model="selectedShippingType"
                 @change="onShippingTypeChange"
@@ -121,14 +121,14 @@
             </div>
 
             <div class="flex justify-between items-center">
-              <span class="text-gray-500">ค่าจัดส่ง</span>
+              <span class="text-gray-500">Shipping</span>
               <div class="flex items-center gap-2">
                 <q-spinner-dots v-if="isCalculatingShipping" color="green" size="16px" />
                 <span class="text-gray-800">{{ formatPrice(shippingPrice) }}</span>
               </div>
             </div>
             <div class="border-t border-gray-100 pt-2 flex justify-between font-semibold">
-              <span class="text-gray-800">รวมทั้งหมด</span>
+              <span class="text-gray-800">Total</span>
               <span class="text-emerald-600 text-lg">{{ formatPrice(total) }}</span>
             </div>
           </div>
@@ -145,7 +145,7 @@
           </button>
           <router-link to="/">
             <button class="w-full h-11 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors">
-              เลือกซื้อสินค้าต่อ
+              Continue Shopping
             </button>
           </router-link>
         </div>
@@ -287,7 +287,7 @@ const calculateShipping = async () => {
 // Format price helper
 const formatPrice = (price) => {
   if (price === undefined || price === null) return '฿0'
-  return '฿' + Number(price).toLocaleString()
+  return '฿' + Number(price).toLocaleString('en-US')
 }
 
 // Quantity controls

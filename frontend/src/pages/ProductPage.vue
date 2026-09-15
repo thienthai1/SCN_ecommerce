@@ -88,7 +88,7 @@
 
         <!-- Description -->
         <div v-if="product.description" class="mt-4 pt-4 border-t border-gray-100">
-          <span class="text-lg font-semibold text-gray-700 mb-2">รายละเอียดสินค้า</span>
+          <span class="text-lg font-semibold text-gray-700 mb-2">Product details</span>
           <p class="text-gray-600 text-sm leading-relaxed">{{ product.description }}</p>
         </div>
       </div>
@@ -245,7 +245,7 @@ const variantOptions = computed(() => {
       for (const opt of variant.options) {
         options.push({
           ...opt,
-          variantType: variant.variant // e.g., "สี" (color)
+          variantType: variant.variant // e.g., "Color" (color)
         })
       }
     }
@@ -253,7 +253,7 @@ const variantOptions = computed(() => {
   return options
 })
 
-// Get variant group name (e.g., "สี" for color)
+// Get variant group name (e.g., "Color" for color)
 const variantTypeName = computed(() => {
   if (!product.value?.variants || product.value.variants.length === 0) return ''
   return product.value.variants[0]?.variant || 'Option'
@@ -366,7 +366,7 @@ const saveWishlist = (wishlist) => {
 // Format price helper
 const formatPrice = (price) => {
   if (price === undefined || price === null) return '฿0'
-  return '฿' + Number(price).toLocaleString()
+  return '฿' + Number(price).toLocaleString('en-US')
 }
 
 // Navigation

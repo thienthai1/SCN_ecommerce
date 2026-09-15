@@ -7,7 +7,7 @@
           <q-icon name="arrow_back" size="20px" class="text-gray-700" />
         </button>
         <div>
-          <span class="text-lg font-semibold text-gray-800">คำสั่งซื้อของฉัน</span>
+          <span class="text-lg font-semibold text-gray-800">My Orders</span>
         </div>
       </div>
     </header>
@@ -23,7 +23,7 @@
       <p class="text-sm text-gray-500 mb-4">Track and manage your orders</p>
 
       <!-- Filter Tabs -->
-      <div class="flex gap-2 mb-4 overflow-x-auto scrollbar-hide pb-1">
+      <div class="flex flex-nowrap gap-2 mb-4 overflow-x-auto scrollbar-hide pb-1">
         <button
           v-for="(tab, index) in filterTabs"
           :key="tab"
@@ -129,7 +129,7 @@
             <div v-if="order.shipped_address" class="flex items-start gap-2 text-xs pb-2 mb-2 border-b border-gray-100">
               <q-icon name="location_on" size="14px" class="text-gray-400 mt-0.5 flex-shrink-0" />
               <div class="flex-1 min-w-0">
-                <p class="text-gray-500 font-medium">ที่อยู่จัดส่ง:</p>
+                <p class="text-gray-500 font-medium">Shipping address:</p>
                 <p class="text-gray-600 mt-0.5">{{ order.customer_name }} • {{ order.customer_phone }}</p>
                 <p class="text-gray-500 mt-0.5 line-clamp-2">{{ order.shipped_address }}</p>
               </div>
@@ -138,7 +138,7 @@
             <div class="flex items-center justify-between text-xs">
               <span class="text-gray-500 flex items-center gap-1">
                 <q-icon name="receipt_long" size="14px" />
-                ยอดรวม
+                Subtotal
               </span>
               <span class="text-gray-600">{{ formatPrice(order.total_price - (order.shipping_price || 0) || 0) }}</span>
             </div>
@@ -146,13 +146,13 @@
             <div class="flex items-center justify-between text-xs">
               <span class="text-gray-500 flex items-center gap-1">
                 <q-icon name="local_shipping" size="14px" />
-                ค่าจัดส่ง ({{ order.shipping_type || 'standard' }})
+                Shipping ({{ order.shipping_type || 'standard' }})
               </span>
               <span class="text-gray-600">{{ formatPrice(order.shipping_price || 0) }}</span>
             </div>
             <!-- Total -->
             <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-700">รวมทั้งหมด</span>
+              <span class="text-sm font-medium text-gray-700">Total</span>
               <span class="text-base font-semibold text-gray-800">
                 {{ formatPrice(order.total_price) }}
             </span>
@@ -165,25 +165,25 @@
               @click.stop="openPaymentDialog(order)"
               class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
-              ชำระเงิน
+              Pay Now
             </button>
             <span
               v-if="order.status === 'pending' && order.slipped_images && order.slipped_images.length > 0"
               class="px-4 py-2 bg-amber-100 text-amber-700 text-sm font-medium rounded-lg"
             >
-              รอการตรวจสอบการชำระเงิน
+              Awaiting payment verification
             </span>
             <span
               v-if="order.status === 'paid'"
               class="px-4 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg"
             >
-              กำลังดำเนินการจัดส่ง
+              Preparing shipment
             </span>
             <span
               v-if="order.status === 'shipped'"
               class="px-4 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg"
             >
-              จัดส่งแล้ว
+              Shipped
             </span>
           </div>
         </div>
@@ -196,17 +196,25 @@
 
     <!-- Payment Dialog -->
     <q-dialog v-model="paymentDialogOpen" persistent>
-      <q-card class="w-full max-w-md rounded-2xl pb-[50px]">
-        <q-card-section class="text-center">
-          <span class="text-lg font-bold text-gray-800">การชำระเงิน</span>
-          <p class="text-sm text-gray-500 mt-1">สแกน QR code หรือโอนเงินเพื่อชำระเงิน</p>
+      <q-card class="payment-panel w-full max-w-md rounded-2xl">
+        <q-card-section class="payment-panel-header text-center">
+          <button
+            type="button"
+            aria-label="Close payment panel"
+            class="payment-panel-close rounded-full hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-emerald-600"
+            @click="closePaymentDialog"
+          >
+            <q-icon name="close" size="24px" class="text-gray-500" />
+          </button>
+          <span class="text-lg font-bold text-gray-800">Payment</span>
+          <p class="text-sm text-gray-500 mt-1">Scan the QR code or pay by bank transfer</p>
         </q-card-section>
 
         <q-card-section class="pt-0">
           <!-- Order Info -->
           <div v-if="selectedOrder" class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">
             <div class="flex justify-between items-center">
-              <span class="text-sm font-bold text-gray-600">ยอดรวม</span>
+              <span class="text-sm font-bold text-gray-600">Subtotal</span>
               <span class="text-lg font-bold text-emerald-600">{{ formatPrice(selectedOrder.total_price) }}</span>
             </div>
           </div>
@@ -221,15 +229,15 @@
               </div>
             </div>
             <div class="text-center mt-4">
-              <p v-if="paymentGateway?.bankName" class="text-sm font-medium text-gray-700">ธนาคาร: {{ paymentGateway.bankName }}</p>
-              <p v-if="paymentGateway?.accountNumber" class="text-sm text-gray-600">เลขที่บัญชี: {{ paymentGateway.accountNumber }}</p>
-              <p v-if="paymentGateway?.accountName" class="text-sm text-gray-600">ชื่อบัญชี: {{ paymentGateway.accountName }}</p>
+              <p v-if="paymentGateway?.bankName" class="text-sm font-medium text-gray-700">Bank: {{ paymentGateway.bankName }}</p>
+              <p v-if="paymentGateway?.accountNumber" class="text-sm text-gray-600">Account number: {{ paymentGateway.accountNumber }}</p>
+              <p v-if="paymentGateway?.accountName" class="text-sm text-gray-600">Account name: {{ paymentGateway.accountName }}</p>
             </div>
           </div>
 
           <!-- Upload Payment Proof -->
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">อัปโหลดหลักฐานการชำระเงิน</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Upload proof of payment</label>
             <div 
               class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-400 transition-colors"
               @click="triggerFileUpload"
@@ -243,8 +251,8 @@
               />
               <div v-if="!uploadedProof">
                 <q-icon name="cloud_upload" size="40px" class="text-gray-400" />
-                <p class="text-sm text-gray-500 mt-2">คลิกเพื่ออัปโหลดรูปภาพ</p>
-                <p class="text-xs text-gray-400 mt-1">PNG, JPG ขนาดไม่เกิน 5MB</p>
+                <p class="text-sm text-gray-500 mt-2">Click to upload an image</p>
+                <p class="text-xs text-gray-400 mt-1">PNG or JPG, up to 5 MB</p>
               </div>
               <div v-else class="relative">
                 <img :src="uploadedProof" alt="Payment Proof" class="max-h-32 mx-auto rounded-lg" />
@@ -265,7 +273,7 @@
             @click="closePaymentDialog"
             class="flex-1 py-3 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
           >
-            ยกเลิก
+            Cancel
           </button>
           <button 
             @click="confirmPayment"
@@ -273,7 +281,7 @@
             class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <q-spinner v-if="isUploading" color="white" size="20px" />
-            <span>{{ isUploading ? 'กำลังอัปโหลด...' : 'ยืนยันการชำระเงิน' }}</span>
+            <span>{{ isUploading ? 'Uploading...' : 'Confirm Payment' }}</span>
           </button>
         </q-card-actions>
       </q-card>
@@ -319,7 +327,7 @@ const filteredOrders = computed(() => {
 // Format price helper
 const formatPrice = (price) => {
   if (price === undefined || price === null) return '฿0'
-  return '฿' + Number(price).toLocaleString()
+  return '฿' + Number(price).toLocaleString('en-US')
 }
 
 // Get item image - prefer attached product doc image, then variant image, then product_imageUrl
@@ -515,6 +523,36 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.payment-panel {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.payment-panel-header {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: white;
+  padding: 20px 56px 16px;
+}
+
+.payment-panel-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.payment-panel > :not(.payment-panel-header) {
+  flex-shrink: 0;
+}
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }

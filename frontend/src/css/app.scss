@@ -56,3 +56,32 @@
 main {
   background-color: var(--theme-white-color);
 }
+
+// Self-hosted Poppins across storefront, forms and backoffice.
+html, body, #q-app {
+  font-family: 'Poppins', sans-serif;
+}
+button, input, textarea, select {
+  font-family: inherit;
+}
+
+// Quasar's unlayered heading defaults otherwise override Tailwind utilities.
+// Fall back to Tailwind's declared sizes, weights and spacing on app headings.
+:is(h1, h2, h3, h4, h5, h6)[class] {
+  font-size: revert-layer;
+  font-weight: revert-layer;
+  line-height: revert-layer;
+  letter-spacing: revert-layer;
+  margin: revert-layer;
+  overflow-wrap: anywhere;
+}
+
+// Allow long names, addresses and identifiers to wrap inside pages and panels.
+.q-page-container, .q-dialog__inner > .q-card {
+  overflow-wrap: anywhere;
+}
+
+// Keep explicitly non-wrapping rows intact despite Quasar's .flex default.
+.flex.flex-nowrap {
+  flex-wrap: nowrap;
+}

@@ -12,12 +12,11 @@
     "test": "echo \"No test specified\" && exit 0",
     "dev": "quasar dev -m pwa",
     "build": "quasar build -m pwa",
-    "deploy": "quasar build -m pwa && firebase deploy",
     "postinstall": "quasar prepare",
     "icon": "icongenie generate -i app-icon.png --skip-trim --theme-color F6F5F5"
   },
   "dependencies": {
-    "@line/liff": "^2.27.3",
+    "@fontsource/poppins": "^5.3.0",
     "@quasar/extras": "^1.16.4",
     "@tailwindcss/postcss": "^4.1.18",
     "axios": "^1.13.2",

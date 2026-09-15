@@ -23,32 +23,33 @@
           animated
           navigation
           infinite
-          autoplay
+          :autoplay="6500"
+          swipeable
           class="rounded-2xl overflow-hidden shadow-lg"
-          height="170px"
+          height="clamp(220px, 28vw, 380px)"
         >
           <q-carousel-slide
             v-for="(banner, index) in banners"
-            :key="index"
+            :key="banner.id || index"
             :name="index"
             :class="banner.bgClass"
-            :style="banner.image_url ? { backgroundImage: `url(${banner.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}"
+            :style="banner.image_url ? { backgroundImage: `url(${banner.image_url})`, backgroundSize: 'cover', backgroundPosition: '65% center' } : {}"
             class="h-full relative"
           >
-            <!-- Dark overlay -->
-            <div class="absolute inset-0 bg-black/40"></div>
+            <!-- Keep text readable while preserving the textile photography. -->
+            <div class="absolute inset-0 banner-shade"></div>
             <!-- Content -->
-            <div class="absolute inset-0 flex flex-col justify-center px-5">
-              <span class="text-xl font-bold text-white">
+            <div class="absolute inset-0 flex flex-col justify-center px-5 sm:px-9 pb-3">
+              <span class="banner-title font-bold text-white">
                 {{ banner.title }}
               </span>
-              <p v-if="banner.description" class="text-xs text-white/80 mt-1 max-w-[180px]">
+              <p v-if="banner.description" class="banner-description text-white/90 mt-2">
                 {{ banner.description }}
               </p>
               <router-link 
                 v-if="banner.button_url"
                 :to="banner.button_url" 
-                class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-white bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg w-fit hover:bg-white/30 transition-colors"
+                class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-emerald-950 bg-white px-4 py-2 rounded-lg w-fit hover:bg-stone-100 shadow-sm transition-colors"
               >
                 {{ banner.button_name || 'Shop Now' }}
                 <q-icon name="chevron_right" size="12px" />
@@ -70,19 +71,19 @@
             <q-icon name="chevron_right" size="12px" />
           </router-link> -->
         </div>
-        <div class="flex gap-4 px-4 overflow-x-auto scrollbar-hide pb-2 pt-[5px] pl-8">
+        <div class="category-list flex gap-3 px-4 overflow-x-auto scrollbar-hide pb-2 pt-[5px]">
           <!-- All Categories -->
           <div
-            class="flex flex-col items-center cursor-pointer"
+            class="category-choice flex flex-col items-center cursor-pointer"
             @click="selectCategory(null)"
           >
             <div
               :class="selectedCategory === null 
                 ? 'ring-2 ring-emerald-600' 
                 : ''"
-              class="w-10 h-10 rounded-full overflow-hidden bg-stone-200 shadow-sm flex items-center justify-center transition-all duration-300 hover:shadow-md"
+              class="w-14 h-14 rounded-full overflow-hidden bg-stone-200 shadow-sm flex items-center justify-center transition-all duration-300 hover:shadow-md"
             >
-              <q-icon name="apps" size="20px" class="text-gray-600" />
+              <q-icon name="apps" size="24px" class="text-emerald-800" />
             </div>
             <span class="text-xs font-medium text-gray-700 mt-2">All</span>
           </div>
@@ -90,14 +91,14 @@
           <div
             v-for="category in categories"
             :key="category.id"
-            class="flex flex-col items-center cursor-pointer"
+            class="category-choice flex flex-col items-center cursor-pointer"
             @click="selectCategory(category.name)"
           >
             <div
               :class="selectedCategory === category.name 
                 ? 'ring-2 ring-emerald-600' 
                 : ''"
-              class="w-10 h-10 rounded-full overflow-hidden bg-stone-200 shadow-sm transition-all duration-300 hover:shadow-md"
+              class="w-14 h-14 rounded-full overflow-hidden bg-stone-200 shadow-sm transition-all duration-300 hover:shadow-md"
             >
               <img 
                 v-if="category.imageUrl" 
@@ -342,7 +343,7 @@ const toggleWishlist = (product) => {
 // Format price helper
 const formatPrice = (price) => {
   if (price === undefined || price === null) return '฿0'
-  return '฿' + Number(price).toLocaleString()
+  return '฿' + Number(price).toLocaleString('en-US')
 }
 
 // Icon mapping for categories
@@ -376,8 +377,8 @@ const fetchBanners = async () => {
     const allBanners = response.data.banners || []
     // Filter only active banners and sort by slideOrder
     banners.value = allBanners
-      .filter(b => b.isActive !== false)
-      .sort((a, b) => (a.slideOrder || 0) - (b.slideOrder || 0))
+      .filter(b => (b.is_active ?? b.isActive) !== false)
+      .sort((a, b) => (a.slide_order ?? a.slideOrder ?? 0) - (b.slide_order ?? b.slideOrder ?? 0))
   } catch (error) {
     console.error('Error fetching banners:', error)
   }
@@ -463,6 +464,28 @@ const goToProduct = (productId) => {
 </script>
 
 <style scoped>
+.banner-shade {
+  background: linear-gradient(90deg, rgba(28, 40, 31, 0.76) 0%, rgba(28, 40, 31, 0.5) 38%, rgba(28, 40, 31, 0.08) 70%, transparent 100%);
+}
+.banner-title {
+  max-width: 62%;
+  font-size: clamp(20px, 2.6vw, 36px);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+.banner-description {
+  max-width: 58%;
+  font-size: clamp(12px, 1.2vw, 16px);
+  line-height: 1.6;
+}
+.category-list {
+  flex-wrap: nowrap;
+}
+.category-choice {
+  flex: 0 0 76px;
+  text-align: center;
+}
+
 /* Hide scrollbar for horizontal scroll */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
