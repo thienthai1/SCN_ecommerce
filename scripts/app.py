@@ -10,6 +10,8 @@ import signal
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / '.run'
@@ -18,6 +20,9 @@ APPS = {
     'frontend': ['npm', 'run', 'dev'],
     'mockup': ['npm', 'run', 'dev'],
 }
+
+DEFAULT_FRONTEND_DEPLOY_DIR = Path("/var/www/scn-emarket")
+DEFAULT_HEALTH_URL = "https://scn-emarket.kotrdev.com/api/health"
 
 
 def process_info(pid):
@@ -150,18 +155,109 @@ def start(app):
     return True
 
 
+def run_checked(command, cwd=ROOT):
+    print("+ " + " ".join(str(part) for part in command), flush=True)
+    subprocess.run(command, cwd=cwd, check=True)
+
+
+def frontend_deploy_dir():
+    raw = os.environ.get("FRONTEND_DEPLOY_DIR", str(DEFAULT_FRONTEND_DEPLOY_DIR))
+    target = Path(raw).expanduser()
+    if not target.is_absolute():
+        raise RuntimeError("FRONTEND_DEPLOY_DIR must be an absolute path")
+    target = target.resolve()
+    forbidden = {Path("/"), Path("/var"), Path("/var/www"), ROOT.resolve()}
+    if target in forbidden or len(target.parts) < 3:
+        raise RuntimeError(f"Refusing unsafe frontend deployment target: {target}")
+    return target
+
+
+def deploy_frontend():
+    source = ROOT / "frontend" / "dist" / "pwa"
+    index = source / "index.html"
+    if not index.is_file():
+        raise RuntimeError("Frontend build is missing; run npm --prefix frontend run build")
+    if not shutil.which("rsync"):
+        raise RuntimeError("rsync is required for frontend deployment")
+
+    target = frontend_deploy_dir()
+    parent = target.parent
+    needs_sudo = ((target.exists() and not os.access(target, os.W_OK))
+                  or (not target.exists() and not os.access(parent, os.W_OK)))
+    prefix = ["sudo"] if needs_sudo else []
+    if needs_sudo and not shutil.which("sudo"):
+        raise RuntimeError(f"Cannot write {target}; sudo is not available")
+
+    if not target.exists():
+        run_checked(prefix + ["install", "-d", "-m", "775", str(target)])
+    run_checked(prefix + ["rsync", "-a", "--delete", f"{source}/", f"{target}/"])
+    run_checked(prefix + ["chmod", "-R", "a+rX", str(target)])
+    print(f"frontend: DEPLOYED to {target}", flush=True)
+
+
+def check_production_health():
+    url = os.environ.get("DEPLOY_HEALTH_URL", DEFAULT_HEALTH_URL).strip()
+    if not url:
+        print("health: SKIPPED (DEPLOY_HEALTH_URL is empty)", flush=True)
+        return
+    try:
+        request = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
+        with urllib.request.urlopen(request, timeout=15) as response:
+            body = response.read().decode("utf-8", errors="replace")
+            if response.status != 200:
+                raise RuntimeError(f"Health check returned HTTP {response.status}")
+            data = json.loads(body)
+            if data.get("status") != "ok":
+                raise RuntimeError(f"Unexpected health response: {body}")
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Production health check failed: {exc}") from exc
+    print(f"health: OK ({url})", flush=True)
+
+
+def deploy(selected):
+    errors = [error for app in selected for error in preflight(app, force=True)]
+    if errors:
+        raise RuntimeError("\n".join(errors))
+    if "frontend" in selected:
+        frontend_deploy_dir()
+        if not shutil.which("rsync"):
+            raise RuntimeError("rsync is required for frontend deployment")
+
+    if "backend" in selected:
+        run_checked(["npm", "test"], cwd=ROOT / "backend")
+    if "frontend" in selected:
+        run_checked(["npm", "run", "build"], cwd=ROOT / "frontend")
+
+    if "backend" in selected:
+        stop("backend")
+        start("backend")
+    if "frontend" in selected:
+        deploy_frontend()
+
+    check_production_health()
+    print("deploy: COMPLETE", flush=True)
+
+
 def main():
-    parser = argparse.ArgumentParser(description='Start/stop local development apps (Linux + Python 3.8+).')
-    parser.add_argument('action', choices=['start', 'stop', 'restart', 'status'])
+    parser = argparse.ArgumentParser(description="Manage local apps and deploy production (Linux + Python 3.8+).")
+    parser.add_argument("action", choices=["start", "stop", "restart", "status", "deploy"])
     parser.add_argument('app', nargs='?', default='all',
                         choices=['all', 'backend', 'frontend', 'backoffice', 'mockup'])
     args = parser.parse_args()
-    selected = list(APPS) if args.app == 'all' else [
-        'frontend' if args.app == 'backoffice' else args.app]
+    normalized_app = "frontend" if args.app == "backoffice" else args.app
+    if args.action == "deploy":
+        if normalized_app == "mockup":
+            raise RuntimeError("mockup does not have a production deployment target")
+        selected = ["backend", "frontend"] if normalized_app == "all" else [normalized_app]
+    else:
+        selected = list(APPS) if normalized_app == "all" else [normalized_app]
     STATE.mkdir(mode=0o700, exist_ok=True)
     # Serialize lifecycle commands; children must not inherit this lock.
     with (STATE / 'manager.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
+        if args.action == "deploy":
+            deploy(selected)
+            return 0
         if args.action == 'status':
             all_running = True
             for app in selected:
@@ -196,7 +292,7 @@ def main():
 if __name__ == '__main__':
     try:
         sys.exit(main())
-    except (RuntimeError, OSError) as exc:
+    except (RuntimeError, OSError, subprocess.CalledProcessError) as exc:
         print(f'Error: {exc}', file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:

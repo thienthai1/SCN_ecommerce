@@ -7,6 +7,7 @@
 ./app.sh status       # ดูสถานะทุกแอป
 ./app.sh restart      # หยุดแล้วเริ่มทุกแอปใหม่
 ./app.sh stop         # หยุดทุกแอป
+./app.sh deploy       # ทดสอบ, build, restart backend และ deploy frontend production
 ```
 
 เลือกแอปได้ด้วย argument ตัวที่สอง:
@@ -22,6 +23,37 @@
 `backoffice` เป็นชื่อแทน `frontend` เพราะใช้ Quasar โปรเซสเดียวกัน
 เข้า backoffice ที่ `/admin/login` บน URL ของ frontend
 `all` รวม mockup ด้วย ส่วน `ScnShop` เป็นชุดคำขอ API ของ Bruno ไม่มี server ให้เปิด
+
+## Deploy production
+
+คำสั่งหลักสำหรับโดเมน production:
+
+```bash
+./app.sh deploy          # backend + frontend
+./app.sh deploy backend  # test และ restart backend เท่านั้น
+./app.sh deploy frontend # build และ sync frontend เท่านั้น
+```
+
+`deploy` จะทำตามลำดับดังนี้:
+
+1. ตรวจ Node/npm และ dependencies
+2. รัน backend tests (เมื่อ deploy backend)
+3. build Quasar PWA (เมื่อ deploy frontend)
+4. restart backend ผ่าน process manager
+5. sync `frontend/dist/pwa/` ไป `/var/www/scn-emarket/` ด้วย `rsync --delete`
+6. ตรวจ `https://scn-emarket.kotrdev.com/api/health`
+
+หาก target ต้องใช้สิทธิ์ root สคริปต์จะเรียก `sudo` และถามรหัสผ่านใน terminal
+สามารถเปลี่ยนปลายทางและ health URL ได้โดยไม่แก้โค้ด:
+
+```bash
+FRONTEND_DEPLOY_DIR=/absolute/web/root \
+DEPLOY_HEALTH_URL=https://shop.example.com/api/health \
+./app.sh deploy
+```
+
+ตั้ง `DEPLOY_HEALTH_URL=` เป็นค่าว่างเมื่อต้องการข้าม health check
+สคริปต์ปฏิเสธ target กว้างหรืออันตราย เช่น `/`, `/var`, `/var/www` และ project root
 
 ## เตรียมครั้งแรก
 
@@ -40,8 +72,8 @@ npm --prefix backend run create-admin
 
 อ่านการตั้งค่าและวิธีสำรองข้อมูลใน [คู่มือ backend](../backend/README.md)
 สคริปต์ไม่ติดตั้ง dependencies ให้อัตโนมัติ
-Backend ใช้ `npm start`; frontend และ mockup ใช้ `npm run dev`
-จึงเหมาะกับการพัฒนาในเครื่อง ไม่ใช่บริการ production หรือระบบเริ่มอัตโนมัติหลัง reboot
+คำสั่ง lifecycle ใช้ `npm start` สำหรับ backend และ `npm run dev` สำหรับ frontend/mockup
+ส่วน `deploy` ใช้ production PWA build และ web root ที่กำหนดไว้ แต่ backend process manager นี้ยังไม่เริ่มเองหลัง reboot
 
 ## Logs และสถานะ
 
