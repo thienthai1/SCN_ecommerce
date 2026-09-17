@@ -3,22 +3,25 @@
 ใช้จากโฟลเดอร์โปรเจกต์ บน Linux ที่มี Bash, Python 3.8+, Node.js 22.13+ และ npm:
 
 ```bash
-./app.sh start        # เริ่ม backend, frontend และ mockup
-./app.sh status       # ดูสถานะทุกแอป
-./app.sh restart      # หยุดแล้วเริ่มทุกแอปใหม่
-./app.sh stop         # หยุดทุกแอป
-./app.sh deploy       # ทดสอบ, build, restart backend และ deploy frontend production
+./scripts/start.sh    # เริ่ม backend, frontend และ mockup
+./scripts/status.sh   # ดูสถานะทุกแอป
+./scripts/restart.sh  # หยุดแล้วเริ่มทุกแอปใหม่
+./scripts/stop.sh     # หยุดทุกแอป
+./scripts/deploy.sh   # ทดสอบ, build, restart backend และ deploy frontend production
 ```
 
-เลือกแอปได้ด้วย argument ตัวที่สอง:
+เลือกแอปได้ด้วย argument ตัวแรก:
 
 ```bash
-./app.sh start backend
-./app.sh start frontend
-./app.sh restart backoffice
-./app.sh stop mockup
-./app.sh status all
+./scripts/start.sh backend
+./scripts/start.sh frontend
+./scripts/restart.sh backoffice
+./scripts/stop.sh mockup
+./scripts/status.sh all
 ```
+
+สคริปต์ย่อยทั้งหมดเรียกผ่าน `app.sh` ซึ่งยังใช้งานรูปแบบเดิมได้ เช่น
+`./app.sh start backend` เพื่อให้ logic การจัดการแอปอยู่ที่เดียว
 
 `backoffice` เป็นชื่อแทน `frontend` เพราะใช้ Quasar โปรเซสเดียวกัน
 เข้า backoffice ที่ `/admin/login` บน URL ของ frontend
@@ -29,9 +32,9 @@
 คำสั่งหลักสำหรับโดเมน production:
 
 ```bash
-./app.sh deploy          # backend + frontend
-./app.sh deploy backend  # test และ restart backend เท่านั้น
-./app.sh deploy frontend # build และ sync frontend เท่านั้น
+./scripts/deploy.sh          # backend + frontend
+./scripts/deploy.sh backend  # test และ restart backend เท่านั้น
+./scripts/deploy.sh frontend # build และ sync frontend เท่านั้น
 ```
 
 `deploy` จะทำตามลำดับดังนี้:
@@ -49,7 +52,7 @@
 ```bash
 FRONTEND_DEPLOY_DIR=/absolute/web/root \
 DEPLOY_HEALTH_URL=https://shop.example.com/api/health \
-./app.sh deploy
+./scripts/deploy.sh
 ```
 
 ตั้ง `DEPLOY_HEALTH_URL=` เป็นค่าว่างเมื่อต้องการข้าม health check
