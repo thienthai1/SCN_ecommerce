@@ -19,13 +19,14 @@
     "body-parser": "^2.2.2",
     "busboy": "^1.6.0",
     "cors": "^2.8.5",
+    "cron-parser": "^5.4.0",
     "dotenv": "^16.0.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
     "omise": "^1.1.0",
+    "stripe": "^22.6.2",
     "uuid-v4": "^0.1.0",
-    "web-push": "^3.6.7",
-    "cron-parser": "^5.4.0"
+    "web-push": "^3.6.7"
   },
   "engines": {
     "node": ">=22.13.0"

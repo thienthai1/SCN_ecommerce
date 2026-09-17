@@ -102,6 +102,16 @@ const routes = [
     beforeEnter: requireCustomerAuth
   },
   {
+    path: "/payment/success",
+    component: () => import("pages/PaymentSuccessPage.vue"),
+    beforeEnter: requireCustomerAuth
+  },
+  {
+    path: "/payment/cancel",
+    component: () => import("pages/PaymentCancelPage.vue"),
+    beforeEnter: requireCustomerAuth
+  },
+  {
     path: '/profile',
     component: () => import('pages/ProfileSettingPage.vue'),
     meta: { bottomNav: 'profile' },

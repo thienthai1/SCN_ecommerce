@@ -124,7 +124,7 @@
         class="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         <q-spinner v-if="isLoading" color="white" size="20px" />
-        <span>{{ isLoading ? 'Processing...' : 'Place Order' }}</span>
+        <span>{{ isLoading ? "Processing..." : "Place Order & Pay with PromptPay" }}</span>
       </button>
     </main>
 
@@ -634,8 +634,23 @@ async function placeOrder() {
       window.dispatchEvent(new Event('cart-updated'))
     }
 
-    sessionStorage.removeItem('checkoutItems')
-    showSuccessDialog.value = true
+    sessionStorage.removeItem("checkoutItems")
+
+    // Stripe Checkout owns the QR/payment UI. Only the signed webhook can mark
+    // this order as paid; a redirect back to the app is not trusted.
+    try {
+      const { data } = await api.post("/payments/stripe/checkout-session", { orderId })
+      window.location.assign(data.checkoutUrl)
+      return
+    } catch (stripeError) {
+      console.error("Unable to open Stripe Checkout:", stripeError)
+      $q.notify({
+        type: "warning",
+        message: "Order saved, but Stripe Checkout could not be opened.",
+        caption: "You can retry or use bank transfer from Orders."
+      })
+      showSuccessDialog.value = true
+    }
 
   } catch (error) {
     console.error('Error placing order:', error)

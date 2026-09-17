@@ -226,8 +226,8 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
         user_email
       } = req.body;
 
-      if (!user_id) {
-        return res.status(400).json({ error: 'user_id is required. Please sign in to place an order.' });
+      if (user_id && user_id !== req.user.id) {
+        return res.status(403).json({ error: 'Cannot create an order for another user' });
       }
 
       if (!customer_name || total_price === undefined) {
@@ -268,8 +268,14 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
         shipped_address: shipped_address || '',
         shipping_type: shipping_type || '',
         shipping_price: shipping_price !== undefined ? Number(shipping_price) : 0,
-        user_id: user_id,
+        user_id: req.user.id,
         user_email: user_email || '',
+        payment_status: 'unpaid',
+        payment_provider: null,
+        payment_method: null,
+        stripe_checkout_session_id: null,
+        stripe_payment_intent_id: null,
+        paid_at: null,
         created_at: Timestamp ? Timestamp.now() : new Date()
       };
 
@@ -376,7 +382,8 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
       if (!db) return res.status(500).json({ error: 'Database not initialized' });
 
       const { user_id } = req.params;
-      if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+      if (!user_id) return res.status(400).json({ error: "user_id is required" });
+      if (user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
       // Query orders by user_id, ordered by created_at descending
       const ordersSnapshot = await db.collection('orders')
@@ -482,8 +489,12 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
       const { id, order_id, product_id, price, quantity, options } = req.body;
 
       if (!order_id || !product_id || quantity === undefined) {
-        return res.status(400).json({ error: 'order_id, product_id and quantity are required' });
+        return res.status(400).json({ error: "order_id, product_id and quantity are required" });
       }
+
+      const orderSnapshot = await db.collection('orders').doc(order_id).get();
+      if (!orderSnapshot.exists) return res.status(404).json({ error: 'Order not found' });
+      if (orderSnapshot.data().user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
 
       const itemId = id || (UUID ? UUID() : undefined);
 

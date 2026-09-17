@@ -161,20 +161,20 @@
           <!-- Action Buttons -->
           <div class="mt-3 pt-3 border-t border-gray-100 flex justify-end gap-2">
             <button
-              v-if="order.status === 'pending' && (!order.slipped_images || order.slipped_images.length === 0)"
+              v-if="order.status === 'pending' && order.payment_status !== 'paid' && (!order.slipped_images || order.slipped_images.length === 0)"
               @click.stop="openPaymentDialog(order)"
               class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               Pay Now
             </button>
             <span
-              v-if="order.status === 'pending' && order.slipped_images && order.slipped_images.length > 0"
+              v-if="order.status === 'pending' && order.payment_status !== 'paid' && order.slipped_images && order.slipped_images.length > 0"
               class="px-4 py-2 bg-amber-100 text-amber-700 text-sm font-medium rounded-lg"
             >
               Awaiting payment verification
             </span>
             <span
-              v-if="order.status === 'paid'"
+              v-if="order.payment_status === 'paid' || order.status === 'paid'"
               class="px-4 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg"
             >
               Preparing shipment
@@ -217,6 +217,23 @@
               <span class="text-sm font-bold text-gray-600">Subtotal</span>
               <span class="text-lg font-bold text-emerald-600">{{ formatPrice(selectedOrder.total_price) }}</span>
             </div>
+          </div>
+
+          <!-- Stripe PromptPay -->
+          <button
+            type="button"
+            :disabled="isOpeningStripe"
+            @click="payWithStripe"
+            class="w-full py-3 mb-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <q-spinner v-if="isOpeningStripe" color="white" size="20px" />
+            <q-icon v-else name="qr_code_2" size="21px" />
+            <span>{{ isOpeningStripe ? "Opening Stripe..." : "PromptPay through Stripe" }}</span>
+          </button>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-px bg-gray-200 flex-1"></div>
+            <span class="text-xs text-gray-400">or transfer and upload a slip</span>
+            <div class="h-px bg-gray-200 flex-1"></div>
           </div>
 
           <!-- Payment Gateway Info -->
@@ -311,6 +328,7 @@ const uploadedProof = ref(null)
 const uploadedProofBase64 = ref(null)
 const fileInput = ref(null)
 const isUploading = ref(false)
+const isOpeningStripe = ref(false)
 
 // Filtered orders based on active filter
 const filteredOrders = computed(() => {
@@ -443,6 +461,7 @@ function openPaymentDialog(order) {
   selectedOrder.value = order
   uploadedProof.value = null
   uploadedProofBase64.value = null
+  isOpeningStripe.value = false
   paymentDialogOpen.value = true
 }
 
@@ -481,6 +500,22 @@ function removeUploadedProof() {
   uploadedProofBase64.value = null
   if (fileInput.value) {
     fileInput.value.value = ''
+  }
+}
+
+async function payWithStripe() {
+  if (!selectedOrder.value) return
+  isOpeningStripe.value = true
+  try {
+    const { data } = await api.post("/payments/stripe/checkout-session", { orderId: selectedOrder.value.id })
+    window.location.assign(data.checkoutUrl)
+  } catch (error) {
+    console.error("Unable to open Stripe Checkout:", error)
+    $q.notify({
+      type: "negative",
+      message: error.response?.data?.error || "Unable to open Stripe Checkout"
+    })
+    isOpeningStripe.value = false
   }
 }
 

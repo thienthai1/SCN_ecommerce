@@ -13,6 +13,9 @@ let webpush = require('web-push');
 // config express app
 const app = express();
 const port = process.env.PORT || 3000;
+// Stripe verifies webhook signatures against the exact request bytes. This
+// middleware must run before the global JSON parser.
+app.use('/payments/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '3mb' }));
 app.use(express.urlencoded({ limit: '3mb', extended: true }));
 
@@ -157,11 +160,13 @@ const registerLocalScheduler = require('./services/local-scheduler');
 
 // Omise Payment routes
 const registerOmisePaymentRoutes = require('./services/omise-payment');
+const registerStripePaymentRoutes = require('./services/stripe-payment');
 
 // Register local scheduler routes after helper functions (so we can inject db/Timestamp/sendPushNotificationToAll)
 const scheduler = registerLocalScheduler(app, { db, Timestamp, sendPushNotificationToAll, authenticate, ensureAdmin });
 
 registerOmisePaymentRoutes(app, { db, FieldValue, authenticate, ensureAdmin });
+registerStripePaymentRoutes(app, { db, FieldValue, authenticate });
 
 // Reusable function to send push notifications to all subscribers
 async function sendPushNotificationToAll(title, body, openUrl = '/#/') {
