@@ -195,6 +195,7 @@ module.exports = function registerStripePaymentRoutes(app, opts = {}) {
 
   app.get('/payments/stripe/status/:orderId', authenticate, async (req, res) => {
     try {
+      res.set("Cache-Control", "no-store");
       const owned = await ownedOrder(req, res);
       if (!owned) return;
       return res.json({ orderId: owned.id, paymentStatus: owned.data.payment_status || 'unpaid' });

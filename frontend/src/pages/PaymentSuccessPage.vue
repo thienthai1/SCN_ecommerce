@@ -10,7 +10,7 @@
       </p>
       <p v-if="errorMessage" class="text-sm text-red-600 mt-3">{{ errorMessage }}</p>
       <q-spinner-dots v-if="!isPaid && !errorMessage" color="green" size="36px" class="mt-5" />
-      <button @click="$router.push('/orders')" class="w-full h-11 mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl">
+      <button @click="viewOrders" class="w-full h-11 mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl">
         View Orders
       </button>
     </div>
@@ -19,15 +19,23 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from 'src/boot/axios'
 
 const route = useRoute()
+const router = useRouter()
 const paymentStatus = ref('processing')
 const errorMessage = ref('')
 let timer
 let attempts = 0
 const isPaid = computed(() => paymentStatus.value === 'paid')
+
+function viewOrders() {
+  router.replace({
+    path: '/orders',
+    query: { paymentUpdated: route.query.orderId, fresh: Date.now() }
+  })
+}
 
 async function checkStatus() {
   const orderId = route.query.orderId

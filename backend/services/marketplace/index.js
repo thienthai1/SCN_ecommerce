@@ -379,6 +379,7 @@ module.exports = function registerMarketplaceRoutes(app, deps = {}) {
   // GET /getordersbyuser/:user_id - get all orders for a specific user
   app.get('/getordersbyuser/:user_id', authenticate, async (req, res) => {
     try {
+      res.set("Cache-Control", "no-store");
       if (!db) return res.status(500).json({ error: 'Database not initialized' });
 
       const { user_id } = req.params;

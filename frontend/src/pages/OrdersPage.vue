@@ -162,10 +162,20 @@
           <div class="mt-3 pt-3 border-t border-gray-100 flex justify-end gap-2">
             <button
               v-if="order.status === 'pending' && order.payment_status !== 'paid' && (!order.slipped_images || order.slipped_images.length === 0)"
-              @click.stop="openPaymentDialog(order)"
-              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
+              :disabled="openingStripeOrderId === order.id"
+              @click.stop="payWithStripe(order)"
+              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
             >
-              Pay Now
+              <q-spinner v-if="openingStripeOrderId === order.id" color="white" size="16px" />
+              <span>{{ openingStripeOrderId === order.id ? 'Opening Stripe...' : 'Pay Now' }}</span>
+            </button>
+            <button
+              v-if="order.status === 'pending' && order.payment_status !== 'paid' && (!order.slipped_images || order.slipped_images.length === 0)"
+              :disabled="openingStripeOrderId === order.id"
+              @click.stop="openPaymentDialog(order)"
+              class="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+            >
+              Bank Transfer
             </button>
             <span
               v-if="order.status === 'pending' && order.payment_status !== 'paid' && order.slipped_images && order.slipped_images.length > 0"
@@ -206,8 +216,8 @@
           >
             <q-icon name="close" size="24px" class="text-gray-500" />
           </button>
-          <span class="text-lg font-bold text-gray-800">Payment</span>
-          <p class="text-sm text-gray-500 mt-1">Scan the QR code or pay by bank transfer</p>
+          <span class="text-lg font-bold text-gray-800">Bank Transfer</span>
+          <p class="text-sm text-gray-500 mt-1">Scan the bank QR code and upload your payment slip</p>
         </q-card-section>
 
         <q-card-section class="pt-0">
@@ -217,23 +227,6 @@
               <span class="text-sm font-bold text-gray-600">Subtotal</span>
               <span class="text-lg font-bold text-emerald-600">{{ formatPrice(selectedOrder.total_price) }}</span>
             </div>
-          </div>
-
-          <!-- Stripe PromptPay -->
-          <button
-            type="button"
-            :disabled="isOpeningStripe"
-            @click="payWithStripe"
-            class="w-full py-3 mb-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            <q-spinner v-if="isOpeningStripe" color="white" size="20px" />
-            <q-icon v-else name="qr_code_2" size="21px" />
-            <span>{{ isOpeningStripe ? "Opening Stripe..." : "PromptPay through Stripe" }}</span>
-          </button>
-          <div class="flex items-center gap-3 mb-4">
-            <div class="h-px bg-gray-200 flex-1"></div>
-            <span class="text-xs text-gray-400">or transfer and upload a slip</span>
-            <div class="h-px bg-gray-200 flex-1"></div>
           </div>
 
           <!-- Payment Gateway Info -->
@@ -307,13 +300,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onBeforeUnmount, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { api } from 'src/boot/axios'
 import BottomNavigation from '../components/BottomNavigation.vue'
 
-const router = useRouter()
 const $q = useQuasar()
 
 const orders = ref([])
@@ -328,7 +319,7 @@ const uploadedProof = ref(null)
 const uploadedProofBase64 = ref(null)
 const fileInput = ref(null)
 const isUploading = ref(false)
-const isOpeningStripe = ref(false)
+const openingStripeOrderId = ref(null)
 
 // Filtered orders based on active filter
 const filteredOrders = computed(() => {
@@ -435,7 +426,10 @@ async function fetchOrders() {
     }
 
     // Fetch orders by user_id
-    const response = await api.get(`/getordersbyuser/${userId}`)
+    const response = await api.get("/getordersbyuser/" + userId, {
+      params: { fresh: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' }
+    })
     orders.value = response.data.orders || []
 
   } catch (error) {
@@ -461,7 +455,6 @@ function openPaymentDialog(order) {
   selectedOrder.value = order
   uploadedProof.value = null
   uploadedProofBase64.value = null
-  isOpeningStripe.value = false
   paymentDialogOpen.value = true
 }
 
@@ -503,11 +496,11 @@ function removeUploadedProof() {
   }
 }
 
-async function payWithStripe() {
-  if (!selectedOrder.value) return
-  isOpeningStripe.value = true
+async function payWithStripe(order) {
+  if (!order) return
+  openingStripeOrderId.value = order.id
   try {
-    const { data } = await api.post("/payments/stripe/checkout-session", { orderId: selectedOrder.value.id })
+    const { data } = await api.post("/payments/stripe/checkout-session", { orderId: order.id })
     window.location.assign(data.checkoutUrl)
   } catch (error) {
     console.error("Unable to open Stripe Checkout:", error)
@@ -515,7 +508,7 @@ async function payWithStripe() {
       type: "negative",
       message: error.response?.data?.error || "Unable to open Stripe Checkout"
     })
-    isOpeningStripe.value = false
+    openingStripeOrderId.value = null
   }
 }
 
@@ -550,10 +543,26 @@ async function confirmPayment() {
   }
 }
 
-// Load orders on mount
+function refreshOrdersWhenVisible() {
+  if (document.visibilityState === "visible") fetchOrders()
+}
+
+function refreshOrdersOnPageShow() {
+  fetchOrders()
+}
+
+// Refresh on mount and whenever the user returns from Stripe or restores the
+// PWA from the background/back-forward cache.
 onMounted(() => {
   fetchOrders()
   fetchPaymentGateway()
+  document.addEventListener("visibilitychange", refreshOrdersWhenVisible)
+  window.addEventListener("pageshow", refreshOrdersOnPageShow)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener("visibilitychange", refreshOrdersWhenVisible)
+  window.removeEventListener("pageshow", refreshOrdersOnPageShow)
 })
 </script>
 

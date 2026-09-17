@@ -40,13 +40,14 @@
 /*
   dependecies
 */
+import { clientsClaim } from "workbox-core";
 import { ExpirationPlugin } from "workbox-expiration";
 import { precacheAndRoute } from "workbox-precaching";
 import { registerRoute } from 'workbox-routing';
 import { StaleWhileRevalidate } from 'workbox-strategies';
 import { CacheFirst } from "workbox-strategies";
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
-import { NetworkFirst } from "workbox-strategies";
+import { NetworkOnly } from "workbox-strategies";
 import { Queue} from 'workbox-background-sync';
 
 // Suppress non-critical IDB errors (e.g., database closing during cache timestamp updates)
@@ -65,6 +66,8 @@ console.log('Custom Service Worker Loaded');
 /*
   dependecies
 */
+self.skipWaiting();
+clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST);
 if('sync' in self.registration) {
  
@@ -110,6 +113,13 @@ registerRoute(
       }),
     ],
   })
+);
+
+// API responses contain authentication and live order/payment state. Never
+// serve them from a runtime cache, otherwise a paid order can still look unpaid.
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && url.pathname.startsWith("/api/"),
+  new NetworkOnly()
 );
 
 // Fallback for other HTTP requests
